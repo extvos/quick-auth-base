@@ -1,6 +1,7 @@
 package org.extvos.auth.dto;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * @author Mingcai SHEN
@@ -9,13 +10,24 @@ public class UserInfo implements Serializable {
     private Serializable id;
     private String username;
     private String password;
+    private String cellphone;
     private String[] roles;
     private String[] permissions;
+    private Map<String, Object> extraInfo;
 
-    public UserInfo(Serializable id, String username, String password) {
+    public UserInfo(Serializable id, String username, String password, String cellphone) {
         this.id = id;
         this.username = username;
         this.password = password;
+        this.cellphone = cellphone;
+    }
+
+    public UserInfo(Serializable id, String username, String password, String cellphone, Map<String, Object> extraInfo) {
+        this.id = id;
+        this.username = username;
+        this.password = password;
+        this.cellphone = cellphone;
+        this.extraInfo = extraInfo;
     }
 
     public Serializable getId() {
@@ -56,5 +68,21 @@ public class UserInfo implements Serializable {
 
     public void setPermissions(String[] permissions) {
         this.permissions = permissions;
+    }
+
+    public String getCellphone() {
+        return cellphone;
+    }
+
+    public void setCellphone(String cellphone) {
+        this.cellphone = cellphone;
+    }
+
+    public Map<String, Object> getExtraInfo() {
+        return extraInfo;
+    }
+
+    public void setExtraInfo(Map<String, Object> extraInfo) {
+        this.extraInfo = extraInfo;
     }
 }

@@ -6,6 +6,7 @@ import org.extvos.auth.dto.UserInfo;
 import org.extvos.auth.enums.AuthCode;
 import org.extvos.auth.service.QuickAuthService;
 import org.extvos.restlet.exception.RestletException;
+import org.extvos.restlet.utils.SpringContextHolder;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationInfo;
@@ -31,6 +32,10 @@ public class QuickRealm extends AuthorizingRealm {
 
     @Override
     public boolean supports(AuthenticationToken token) {
+        if (null == quickAuthService) {
+            log.warn("supports: quickAuthService == null ");
+            quickAuthService = SpringContextHolder.getBean(QuickAuthService.class);
+        }
         return token instanceof QuickToken;
     }
 
@@ -86,18 +91,18 @@ public class QuickRealm extends AuthorizingRealm {
         String username = authenticationToken.getPrincipal().toString();
         log.debug("doGetAuthenticationInfo> try username = {}", username);
         try {
-            UserInfo user = quickAuthService.getUserByName(username, true);
-            if (user == null) {
+            UserInfo userInfo = quickAuthService.getUserByName(username, true);
+            if (userInfo == null) {
                 //这里返回后会报出对应异常
                 log.warn("doGetAuthenticationInfo> can not get user by username {}", username);
                 return null;
             } else {
                 //这里验证authenticationToken和simpleAuthenticationInfo的信息
-                log.debug("doGetAuthenticationInfo> got user by username {}", user);
-                return new QuickInfo(user);
+                log.debug("doGetAuthenticationInfo> got user by username {}", userInfo);
+                return new QuickInfo(userInfo);
             }
         } catch (RestletException e) {
-            log.error("doGetAuthenticationInfo >", e);
+            log.error("doGetAuthenticationInfo 1>", e);
             if (AuthCode.ACCOUNT_NOT_FOUND.equals(e.getCode())) {
                 throw new CredentialsException(e.getMessage());
             } else if (AuthCode.ACCOUNT_DISABLED.equals(e.getCode())) {
@@ -108,7 +113,7 @@ public class QuickRealm extends AuthorizingRealm {
                 throw new UnknownAccountException(e.getMessage());
             }
         } catch (Exception e) {
-            log.error("doGetAuthenticationInfo >", e);
+            log.error("doGetAuthenticationInfo 2>", e);
             return null;
         }
     }

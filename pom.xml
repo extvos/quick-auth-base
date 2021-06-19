@@ -94,7 +94,29 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.4.4</version>
+            </plugin>
         </plugins>
     </build>
+
+
+    <distributionManagement>
+        <repository>
+            <!--这里的id与settings.xml中的servers节点配置的用户ID一直，这样才能使用配置的用户去上传到maven私有仓库 -->
+            <!--此仓库对应的为RELEASE版本的jar-->
+            <id>inodes</id>
+            <url>http://nexus.inodes.cn/repository/maven-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <!--这里的id与settings.xml中的servers节点配置的用户ID一直，这样才能使用配置的用户去上传到maven私有仓库 -->
+            <!--此仓库对应的为SNAPSHOT版本的jar-->
+            <id>inodes</id>
+            <url>http://nexus.inodes.cn/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
 
 </project>

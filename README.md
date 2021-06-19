@@ -2,7 +2,16 @@
 
 基础认证服务，基于`Shiro`提供用户登入登出接口，以及相关的用户操作接口。模块本身不存储用户数据信息，依赖于应用方注入实现了`org.extvos.auth.service.QuickAuthService`的bean完成用户信息的存取操作。
 
-
+## 相关配置项
+```ini
+quick.auth.base.secret = "quick"  # 用户内部数据加扰用，不对外产生作用，可忽略
+quick.auth.base.salt-required = false  # 是否强制要求终端登录加盐加扰
+quick.auth.base.captcha-required = false  # 是否强制终端要求验证码
+quick.auth.base.register-allowed = false  # 是否允许通过接口注册
+quick.auth.base.auto-register = false  # 是否允许自动注册 （第三方登录匹配不到账号时）
+quick.auth.base.phone-required = false # 是否需求绑定电话号码（第三方登录时）
+quick.auth.base.sms-code-length = 6   # 短信验证码的生成长度
+```
 
 ## 模块提供的接口
 
@@ -11,12 +20,16 @@
 #### 请求参数：
 - `username` 用户名
 - `password` 用户密码
+- `cellphone` 手机号码
+- `smscode` 短信验证码
 - `salt` 密码加扰盐（如果用户密码未加扰，则保持为空或不提供）
 - `algorithm` 用户密码加扰算法（无盐则无需考虑，默认使用`MD5`），支持`MD5`,`SHA1`,`SHA-256`,`SHA-512`
 - `captcha` 验证码（如果没有则不需要提供）
 - `redirectUri` 登陆成功后跳转`URL`，若为空则返回`JSON`格式数据
 
 请求参数支持`FORM`的方式提交，也支持以`JSON`的格式提交。
+
+接口支持以**用户名+密码**的方式登录，或者以**手机号+短信验证码**的方式登录（需要用户有绑定手机号以及集成方有实现`SMSService`服务），
 
 #### 返回数据：
 
@@ -87,7 +100,9 @@
 
 更改当前登录用户密码
 
+### `POST` `/auth/send-smscode` 发送手机验证码
 
+发送手机验证码以完成登录
 
 ## 模块提供的注解
 
@@ -116,22 +131,33 @@ public interface QuickAuthService {
     /**
      * Get UserInfo by username
      *
-     * @param name : username
+     * @param name          : username
      * @param checkEnabled: check if user enabled or not
      * @return UserInfo object
      * @throws RestletException when errors
      */
-    UserInfo getUserByName(String name,boolean checkEnabled) throws RestletException;
+    UserInfo getUserByName(String name, boolean checkEnabled) throws RestletException;
 
     /**
      * Get UserInfo by id
      *
-     * @param id of user
+     * @param id            of user
      * @param checkEnabled: check if user enabled or not
      * @return UserInfo
      * @throws RestletException when errors
      */
-    UserInfo getUserById(Serializable id,boolean checkEnabled) throws RestletException;
+    UserInfo getUserById(Serializable id, boolean checkEnabled) throws RestletException;
+
+
+    /**
+     * Get UserInfo by phone number
+     *
+     * @param phone        number
+     * @param checkEnabled check if user enabled or not
+     * @return UserInfo
+     * @throws RestletException when errors
+     */
+    UserInfo getUserByPhone(String phone, boolean checkEnabled) throws RestletException;
 
 
     /**
@@ -155,38 +181,29 @@ public interface QuickAuthService {
     /**
      * Create new user info into database or other persistent storage
      *
-     * @param username string
-     * @param password string
-     * @param params   extra properties of user.
+     * @param username    string
+     * @param password    string
+     * @param permissions permissions list
+     * @param roles       roles list
+     * @param params      extra properties of user.
      * @return Serializable user id
      * @throws RestletException when errors
      */
-    Serializable createUserInfo(String username, String password, Map<String, Object> params) throws RestletException;
+    Serializable createUserInfo(String username, String password, String[] permissions, String[] roles, Map<String, Object> params) throws RestletException;
 
 
     /**
      * Update user info into database or other persistent storage
      *
-     * @param username string
-     * @param password string
-     * @param params   extra properties of user.
+     * @param username    string
+     * @param password    string
+     * @param permissions permissions list
+     * @param roles       roles list
+     * @param params      extra properties of user.
      * @throws RestletException when errors
      */
-    void updateUserInfo(String username, String password, Map<String, Object> params) throws RestletException;
+    void updateUserInfo(String username, String password, String[] permissions, String[] roles, Map<String, Object> params) throws RestletException;
 }
 ```
 
-
-
-## 相关配置
-
-```yaml
-quick:
-  auth:
-    base:
-      secret: "quick"  # 用户模块自身数据加扰
-      captcha-required: false # 是否强制需要验证码
-      salt-required: false # 登录时密码是否需要强制加盐加扰
-      register-allowed: false # 是否允许注册
-```
 

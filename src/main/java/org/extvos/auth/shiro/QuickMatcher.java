@@ -1,13 +1,11 @@
 package org.extvos.auth.shiro;
 
-import org.extvos.auth.config.QuickAuthConfig;
 import org.extvos.auth.utils.CredentialHash;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author Mingcai SHEN

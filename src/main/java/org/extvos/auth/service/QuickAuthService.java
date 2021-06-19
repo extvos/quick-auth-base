@@ -35,6 +35,17 @@ public interface QuickAuthService {
 
 
     /**
+     * Get UserInfo by phone number
+     *
+     * @param phone        number
+     * @param checkEnabled check if user enabled or not
+     * @return UserInfo
+     * @throws RestletException when errors
+     */
+    UserInfo getUserByPhone(String phone, boolean checkEnabled) throws RestletException;
+
+
+    /**
      * Get user roles by id
      *
      * @param id userid
@@ -55,9 +66,11 @@ public interface QuickAuthService {
     /**
      * Create new user info into database or other persistent storage
      *
-     * @param username string
-     * @param password string
-     * @param params   extra properties of user.
+     * @param username    string
+     * @param password    string
+     * @param permissions permissions list
+     * @param roles       roles list
+     * @param params      extra properties of user.
      * @return Serializable user id
      * @throws RestletException when errors
      */
@@ -67,9 +80,11 @@ public interface QuickAuthService {
     /**
      * Update user info into database or other persistent storage
      *
-     * @param username string
-     * @param password string
-     * @param params   extra properties of user.
+     * @param username    string
+     * @param password    string
+     * @param permissions permissions list
+     * @param roles       roles list
+     * @param params      extra properties of user.
      * @throws RestletException when errors
      */
     void updateUserInfo(String username, String password, String[] permissions, String[] roles, Map<String, Object> params) throws RestletException;

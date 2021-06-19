@@ -8,8 +8,11 @@ import org.extvos.auth.dto.RoleInfo;
 import org.extvos.auth.dto.UserInfo;
 import org.extvos.auth.enums.AuthCode;
 import org.extvos.auth.service.QuickAuthService;
+import org.extvos.auth.service.SMSService;
 import org.extvos.auth.shiro.QuickToken;
+import org.extvos.auth.utils.CredentialGenerator;
 import org.extvos.auth.utils.CredentialHash;
+import org.extvos.common.Validator;
 import org.extvos.restlet.Assert;
 import org.extvos.restlet.RestletCode;
 import org.extvos.restlet.Result;
@@ -18,9 +21,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
-import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
-import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.StringUtils;
@@ -51,6 +52,7 @@ public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private static final String CAPTCHA_SESSION_KEY = "CAPTCHA";
+    private static final String SMSCODE_SESSION_KEY = "SMSCODE";
 
     @Autowired
     private Producer captchaProducer;
@@ -58,14 +60,19 @@ public class AuthController {
     @Autowired
     private QuickAuthService quickAuthService;
 
+    @Autowired(required = false)
+    private SMSService smsService;
+
     @Autowired
     private QuickAuthConfig authConfig;
 
     @ApiOperation("登录账户")
     @PostMapping("/login")
     Result<?> doLogin(
-            @RequestParam("username") String username,
-            @RequestParam("password") String password,
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "password", required = false) String password,
+            @RequestParam(value = "cellphone", required = false) String cellphone,
+            @RequestParam(value = "smscode", required = false) String smscode,
             @RequestParam(value = "salt", required = false) String salt,
             @RequestParam(value = "algorithm", required = false) String algorithm,
             @RequestParam(value = "captcha", required = false) String captcha,
@@ -75,34 +82,56 @@ public class AuthController {
         if (params != null && !params.isEmpty()) {
             username = params.getOrDefault("username", username);
             password = params.getOrDefault("password", password);
+            cellphone = params.getOrDefault("cellphone", cellphone);
+            smscode = params.getOrDefault("smscode", smscode);
             salt = params.getOrDefault("salt", salt);
             algorithm = params.getOrDefault("algorithm", algorithm);
             captcha = params.getOrDefault("captcha", captcha);
             redirectUri = params.getOrDefault("redirectUri", redirectUri);
         }
-        log.info("/auth/login: [{},{},{}]", username, password, redirectUri);
-        if (authConfig.isSaltRequired()) {
-            Assert.notEmpty(salt, new RestletException(AuthCode.SALT_REQUIRED, "Salt required!"));
-        }
-        if (authConfig.isCaptchaRequired()) {
-            Assert.notEmpty(captcha, new RestletException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
-        }
-        // 想要得到 SecurityUtils.getSubject() 的对象．．访问地址必须跟 shiro 的拦截地址内．不然后会报空指针
+        // Get subject and session
         Subject sub = SecurityUtils.getSubject();
         Session sess = sub.getSession();
 
-        if (captcha != null && !captcha.isEmpty()) {
-            String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
-            if (!captcha.equals(capText)) {
-                log.error("doLogin:> [{}] 验证码错误", username);
-                throw new RestletException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
+        // Performing sms login first
+        if (Validator.notEmpty(cellphone) && Validator.notEmpty(smscode)) {
+            String smsText = sess.getAttribute(SMSCODE_SESSION_KEY).toString();
+            if (!smscode.equals(smsText)) {
+                log.error("doLogin:> [{}] 验证码错误", cellphone);
+                throw new RestletException(AuthCode.INCORRECT_SMSCODE, "验证码错误");
+            } else {
+                UserInfo ui = quickAuthService.getUserByPhone(cellphone, true);
+                if (null == ui) {
+                    throw new RestletException(AuthCode.ACCOUNT_NOT_FOUND, "用户不存在");
+                } else {
+                    username = ui.getUsername();
+                    password = ui.getPassword();
+                }
             }
             // Remove it for avoid second use.
-            sess.removeAttribute(CAPTCHA_SESSION_KEY);
+            sess.removeAttribute(SMSCODE_SESSION_KEY);
+        } else {
+            Assert.notEmpty(username, new RestletException(AuthCode.USERNAME_REQUIRED, "Username required!"));
+            Assert.notEmpty(password, new RestletException(AuthCode.PASSWORD_REQUIRED, "Password required!"));
+            log.info("/auth/login: [{},{},{}]", username, password, redirectUri);
+            if (authConfig.isSaltRequired()) {
+                Assert.notEmpty(salt, new RestletException(AuthCode.SALT_REQUIRED, "Salt required!"));
+            }
+            if (authConfig.isCaptchaRequired()) {
+                Assert.notEmpty(captcha, new RestletException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
+            }
+
+            if (captcha != null && !captcha.isEmpty()) {
+                String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
+                if (!captcha.equals(capText)) {
+                    log.error("doLogin:> [{}] 验证码错误", username);
+                    throw new RestletException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
+                }
+                // Remove it for avoid second use.
+                sess.removeAttribute(CAPTCHA_SESSION_KEY);
+            }
         }
-        // 用户输入的账号和密码,,存到UsernamePasswordToken对象中..然后由shiro内部认证对比,
-        // 认证执行者交由 org.extvos.auth.shiro.QuickRealm 中 doGetAuthenticationInfo 处理
-        // 当以上认证成功后会向下执行,认证失败会抛出异常
+        // Perform the login
         QuickToken token = new QuickToken(username, password, algorithm, salt);
         Result<?> result;
         try {
@@ -174,7 +203,7 @@ public class AuthController {
     @ApiOperation(value = "获取图片验证码", notes = "获取以JSON格式包含的图片验证码")
     @RequestMapping(value = "/captcha", method = RequestMethod.GET)
     @ResponseBody
-    protected Result<String> getCaptchaImageInText()
+    protected Result<String> getCaptchaImageInText(@RequestParam(required = false) Map<String, Object> ignoredQueries)
             throws IOException {
         Subject subject = SecurityUtils.getSubject();
         Session session = subject.getSession(true);
@@ -191,7 +220,7 @@ public class AuthController {
         return Result.data(imageData).success();
     }
 
-    @ApiOperation(value = "获取图片验证码", notes = "获取图片验证码，直接输出图片", position = 3)
+    @ApiOperation(value = "获取图片验证码", notes = "获取图片验证码，直接输出图片")
     @RequestMapping(produces = MediaType.IMAGE_PNG_VALUE, value = "/captcha-image", method = RequestMethod.GET)
     protected ModelAndView getCaptchaImageRaw(final HttpServletRequest request, HttpServletResponse response) throws IOException {
 
@@ -221,22 +250,65 @@ public class AuthController {
         return null;
     }
 
+    @ApiOperation(value = "发送手机验证码", notes = "根据用户手机号发送随机验证码，用于后续登录")
+    @PostMapping("/send-smscode")
+    public Result<?> performSMSCode(@RequestParam(value = "cellphone", required = false) String cellphone,
+                                    @RequestParam(value = "captcha", required = false) String captcha,
+                                    @RequestBody(required = false) Map<String, String> params) {
+        if (null == smsService) {
+            throw RestletException.notImplemented("SMS service is unavailable.");
+        }
+        if (Validator.notEmpty(params)) {
+            cellphone = params.getOrDefault("cellphone", "");
+            captcha = params.getOrDefault("captcha", "");
+        }
+
+        Assert.notEmpty(cellphone, new RestletException(AuthCode.CELLPHONE_REQUIRED, "Cellphone required!"));
+
+        if (authConfig.isCaptchaRequired()) {
+            Assert.notEmpty(captcha, new RestletException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
+        }
+        Subject sub = SecurityUtils.getSubject();
+        Session sess = sub.getSession();
+        if (captcha != null && !captcha.isEmpty()) {
+            String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
+            if (!captcha.equals(capText)) {
+                log.error("performSMSCode:> [{}] 验证码错误", cellphone);
+                throw new RestletException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
+            }
+            // Remove it for avoid second use.
+            sess.removeAttribute(CAPTCHA_SESSION_KEY);
+        }
+        String code = CredentialGenerator.getDecimalDigits(authConfig.getSmsCodeLength());
+        sess.setAttribute(SMSCODE_SESSION_KEY, code);
+        if (smsService.sendSecretCode(cellphone, code)) {
+            return Result.data("OK").success();
+        } else {
+            throw RestletException.serviceUnavailable("send sms code failed.");
+        }
+    }
+
     @ApiOperation(value = "用户注册", notes = "注册一个新用户接口")
     @PostMapping("/register")
-    public Result<?> registerUser(@RequestBody Map<String, Object> params) throws RestletException {
+    public Result<?> registerUser(
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "password", required = false) String password,
+            @RequestBody(required = false) Map<String, Object> params) throws RestletException {
         Assert.isTrue(authConfig.isRegisterAllowed(), RestletException.forbidden("self register is not allowed"));
         Assert.notEmpty(params, RestletException.forbidden("invalid empty request body"));
-        String username = params.get("username").toString();
-        String password = params.get("password").toString();
         String[] perms = null;
         String[] roles = null;
-        Object pms = params.get("permissions");
-        if (pms instanceof String[]) {
-            perms = (String[]) pms;
-        }
-        Object rs = params.get("roles");
-        if (rs instanceof String[]) {
-            roles = (String[]) rs;
+        if (Validator.notEmpty(params)) {
+            username = params.getOrDefault("username", "").toString();
+            password = params.getOrDefault("password", "").toString();
+            Object pms = params.get("permissions");
+            if (pms instanceof String[]) {
+                perms = (String[]) pms;
+            }
+            Object rs = params.get("roles");
+            if (rs instanceof String[]) {
+                roles = (String[]) rs;
+            }
         }
         Assert.notEmpty(username, RestletException.forbidden("invalid empty username"));
         Assert.notEmpty(password, RestletException.forbidden("invalid empty password"));
@@ -257,12 +329,20 @@ public class AuthController {
     @ApiOperation(value = "更改密码", notes = "更改用户密码")
     @PostMapping("/change-password")
     @RequiresAuthentication
-    public Result<?> changePassword(@RequestParam("oldPassword") String oldPassword,
-                                    @RequestParam("newPassword1") String newPassword1,
-                                    @RequestParam("newPassword2") String newPassword2,
+    public Result<?> changePassword(@RequestParam(value = "oldPassword", required = false) String oldPassword,
+                                    @RequestParam(value = "newPassword1", required = false) String newPassword1,
+                                    @RequestParam(value = "newPassword2", required = false) String newPassword2,
                                     @RequestParam(value = "salt", required = false) String salt,
                                     @RequestParam(value = "algorithm", required = false) String algorithm,
+                                    @RequestBody(required = false) Map<String, String> params,
                                     @SessionUser String username) throws RestletException {
+        if (Validator.notEmpty(params)) {
+            oldPassword = params.getOrDefault("oldPassword", "");
+            newPassword1 = params.getOrDefault("newPassword1", "");
+            newPassword2 = params.getOrDefault("newPassword2", "");
+            salt = params.getOrDefault("salt", "");
+            algorithm = params.getOrDefault("algorithm", "");
+        }
         Assert.notEmpty(username, RestletException.forbidden("can not get current username"));
         Assert.notEmpty(oldPassword, RestletException.badRequest("oldPassword can not be empty"));
         Assert.notEmpty(newPassword1, RestletException.badRequest("newPassword1 can not be empty"));
@@ -289,9 +369,10 @@ public class AuthController {
     @ApiOperation(value = "用户信息", notes = "获取当前会话用户信息")
     @GetMapping("/profile")
     @RequiresAuthentication
-    public Result<UserInfo> getUserProfile(@SessionUser String username) throws RestletException {
-        Assert.notEmpty(username, RestletException.forbidden("can not get current username"));
-        UserInfo userInfo = quickAuthService.getUserByName(username, false);
+    public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws RestletException {
+//        Assert.notEmpty(username, RestletException.forbidden("can not get current username"));
+//        UserInfo userInfo = quickAuthService.getUserByName(username, false);
+        Assert.notNull(userInfo, RestletException.forbidden("can not get current userInfo"));
         List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getId());
         List<String> roleCodes = new LinkedList<>();
         roles.forEach(role -> {

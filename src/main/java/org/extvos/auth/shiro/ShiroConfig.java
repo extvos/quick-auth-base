@@ -2,20 +2,22 @@ package org.extvos.auth.shiro;
 
 import org.extvos.auth.config.QuickAuthConfig;
 import org.extvos.auth.service.QuickFilterCustomizer;
+import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.cache.CacheManager;
 import org.apache.shiro.cache.MemoryConstrainedCacheManager;
 import org.apache.shiro.mgt.SecurityManager;
-import org.apache.shiro.spring.LifecycleBeanPostProcessor;
+import org.apache.shiro.realm.Realm;
+import org.apache.shiro.session.mgt.SessionManager;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
+import org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition;
+import org.apache.shiro.spring.web.config.ShiroFilterChainDefinition;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 import javax.servlet.Filter;
 import java.util.LinkedHashMap;
@@ -24,13 +26,13 @@ import java.util.Map;
 /**
  * @author Mingcai SHEN
  */
-@Configuration
+@Component
 public class ShiroConfig {
 
     private static final Logger log = LoggerFactory.getLogger(ShiroConfig.class);
 
     @Autowired(required = false)
-    QuickFilterCustomizer qfCustomizer;
+    private QuickFilterCustomizer[] qfCustomizers;
 
     @Autowired
     private QuickAuthConfig baseAuthConfig;
@@ -44,96 +46,74 @@ public class ShiroConfig {
     }
 
 
-    @Bean(name = "lifecycleBeanPostProcessor")
-    public LifecycleBeanPostProcessor getLifecycleBeanPostProcessor() {
-        return new LifecycleBeanPostProcessor();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator() {
-        DefaultAdvisorAutoProxyCreator defaultAAP = new DefaultAdvisorAutoProxyCreator();
-        defaultAAP.setProxyTargetClass(true);
-        return defaultAAP;
-    }
 
 
     /**
-     * 凭证匹配器 （由于我们的密码校验交给Shiro的SimpleAuthenticationInfo进行处理了
-     * 所以我们需要修改下doGetAuthenticationInfo中的代码; )
+     * credential matcher
      */
     @Bean
-    public QuickMatcher quickCredentialsMatcher() {
-        // BaseAuthConfig cfg = SpringContextHolder.getBean(BaseAuthConfig.class);
-        QuickMatcher matcher = new QuickMatcher();
-//        matcher.setAlgorithm(baseAuthConfig.getHashAlgorithm());
-//        matcher.setIterations(baseAuthConfig.getHashIterations());
-        return matcher;
+    public CredentialsMatcher quickCredentialsMatcher() {
+        return new QuickMatcher();
     }
 
-    //将自己的验证方式加入容器
+    /**
+     * quickRealm
+     *
+     * @param cacheManager
+     * @return
+     */
     @Bean
-    public QuickRealm quickRealm(CacheManager cacheManager) {
+    public Realm quickRealm(CacheManager cacheManager) {
         QuickRealm customRealm = new QuickRealm();
         customRealm.setCacheManager(cacheManager);
         customRealm.setCredentialsMatcher(quickCredentialsMatcher());
         return customRealm;
     }
 
-    //权限管理，配置主要是Realm的管理认证
+    /**
+     * Configure session manager
+     */
+    @Bean
+    public SessionManager sessionManager() {
+        return new QuickSessionManager();
+//        shiroSessionManager.setSessionDAO(redisSessionDAO());
+//        return sessionManager;
+    }
+
+    /**
+     * 权限管理，配置主要是Realm的管理认证
+     *
+     * @return SecurityManager
+     */
     @Bean
     public SecurityManager securityManager() {
         DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
         securityManager.setCacheManager(getCacheManager());
         securityManager.setRealm(quickRealm(getCacheManager()));
+        securityManager.setSessionManager(sessionManager());
         return securityManager;
     }
 
-    // Filter工厂，设置对应的过滤条件和跳转条件
+    /**
+     * make the ShiroFilterFactoryBean
+     *
+     * @param securityManager of system securityManager
+     * @return a ShiroFilterFactoryBean
+     */
     @Bean
     public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager) {
         ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
         shiroFilterFactoryBean.setSecurityManager(securityManager);
 
-        Map<String, String> map = new LinkedHashMap<>();
-//        Map<String, String> map = new HashMap<>(); // DO NOT USE IT !!!
-
-        // 登出
-//        map.put("/auth/logout", "logout");
-//        map.put("/login", "login");
-
-        // Swagger
-        map.put("/swagger-ui.html", "anon");
-        map.put("/doc.html", "anon");
-        map.put("/webjars/**", "anon");
-        map.put("/v2/api-docs", "anon");
-        map.put("/swagger-resources/**", "anon");
-
-        // Login
-        map.put("/auth/login", "anon");
-
-        map.put("/oauth/authorize", "auth");
-        map.put("/oauth/token", "anon");
-        map.put("/oauth/refresh", "anon");
-        map.put("/auth/user/create", "anon");
-
-        // 对所有用户认证
-        map.put("/**", "anon");
-        if (qfCustomizer != null) {
-            String[] anons = qfCustomizer.anons();
-            String[] auths = qfCustomizer.auths();
-            if (anons != null) {
-                for (String s : anons) {
-                    log.debug("ShiroFilterFactoryBean:> add anon: {}", s);
-                    map.put(s, "anon");
-                }
-            }
-            if (auths != null) {
-                for (String s : auths) {
-                    log.debug("ShiroFilterFactoryBean:> add auth: {}", s);
-                    map.put(s, "auth");
-                }
-            }
+        log.debug("Building shiroFilterFactoryBean ...");
+        log.debug(" ... {}", baseAuthConfig);
+        if (null != baseAuthConfig) {
+            log.debug(" ... getSecret> {}", baseAuthConfig.getSecret());
+            log.debug(" ... getSmsCodeLength> {}", baseAuthConfig.getSmsCodeLength());
+            log.debug(" ... isCaptchaRequired> {}", baseAuthConfig.isCaptchaRequired());
+            log.debug(" ... isPhoneRequired> {}", baseAuthConfig.isPhoneRequired());
+            log.debug(" ... isSaltRequired> {}", baseAuthConfig.isSaltRequired());
+            log.debug(" ... isRegisterAllowed> {}", baseAuthConfig.isRegisterAllowed());
         }
 
         // Set Filter
@@ -142,16 +122,64 @@ public class ShiroConfig {
         shiroFilterFactoryBean.setFilters(filters);
 
         //登录
-        shiroFilterFactoryBean.setLoginUrl("/auth/login");
+        shiroFilterFactoryBean.setLoginUrl(System.getProperty("server.servlet.context-path") + "/" + "auth/login");
         //首页
-        shiroFilterFactoryBean.setSuccessUrl("/index");
+//        shiroFilterFactoryBean.setSuccessUrl("/index");
         //错误页面，认证不通过跳转
-        shiroFilterFactoryBean.setUnauthorizedUrl("/error");
-        shiroFilterFactoryBean.setFilterChainDefinitionMap(map);
+//        shiroFilterFactoryBean.setUnauthorizedUrl("/error");
+
+        shiroFilterFactoryBean.setFilterChainDefinitionMap(shiroFilterChainDefinition().getFilterChainMap());
         return shiroFilterFactoryBean;
     }
 
+    /**
+     * make a ShiroFilterChainDefinition
+     *
+     * @return a new ShiroFilterChainDefinition
+     */
+    @Bean
+    public ShiroFilterChainDefinition shiroFilterChainDefinition() {
+        DefaultShiroFilterChainDefinition chainDefinition = new DefaultShiroFilterChainDefinition();
+        String ctxPath = System.getProperty("server.servlet.context-path") == null ? "" : System.getProperty("server.servlet.context-path");
+        // chainDefinition.addPathDefinition(ctxPath + "/" + "auth/logout", "logout");
+        // Swagger
+        chainDefinition.addPathDefinition(ctxPath + "/" + "swagger-ui.html", "anon");
+        chainDefinition.addPathDefinition(ctxPath + "/" + "doc.html", "anon");
+        chainDefinition.addPathDefinition(ctxPath + "/" + "webjars/**", "anon");
+        chainDefinition.addPathDefinition(ctxPath + "/" + "v2/api-docs", "anon");
+        chainDefinition.addPathDefinition(ctxPath + "/" + "swagger-resources/**", "anon");
 
+        // Login
+        chainDefinition.addPathDefinition(ctxPath + "/" + "auth/user/create", "anon");
+
+        if (null != qfCustomizers) {
+            for (QuickFilterCustomizer qfCustomizer : qfCustomizers) {
+                log.debug("QuickFilterCustomizer:> {} ", qfCustomizer);
+                if (null != qfCustomizer.anons()) {
+                    for (String s : qfCustomizer.anons()) {
+                        log.debug("QuickFilterCustomizer:> add anon: {} ", s);
+                        chainDefinition.addPathDefinition(s, "anon");
+                    }
+                }
+
+                if (null != qfCustomizer.auths()) {
+                    for (String s : qfCustomizer.auths()) {
+                        log.debug("QuickFilterCustomizer:> add auth: {} ", s);
+                        chainDefinition.addPathDefinition(s, "auth");
+                    }
+                }
+            }
+        }
+        // all other path will be added as non-auth required by default, for application level,
+        // please inject a QuickFilterCustomizer bean to customize, or use annotations of Shiro.
+        chainDefinition.addPathDefinition("/**", "anon");
+        return chainDefinition;
+    }
+
+    /**
+     * @param securityManager
+     * @return
+     */
     @Bean
     public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(SecurityManager securityManager) {
         AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor = new AuthorizationAttributeSourceAdvisor();
