@@ -3,7 +3,7 @@ package org.extvos.auth.enums;
 import org.extvos.restlet.Code;
 
 /**
- * @author shenmc
+ * @author Mingcai SHEN
  */
 
 public enum AuthCode implements Code {

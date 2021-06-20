@@ -3,7 +3,7 @@ package org.extvos.auth.utils;
 import java.util.Random;
 
 /**
- * @author shenmc
+ * @author Mingcai SHEN
  */
 public class CredentialGenerator {
 

@@ -20,7 +20,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.Serializable;
 
 /**
- * @author shenmc
+ * @author Mingcai SHEN
  */
 public class QuickSessionManager extends DefaultWebSessionManager implements WebSessionManager {
 

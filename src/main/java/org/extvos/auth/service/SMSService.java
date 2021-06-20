@@ -3,7 +3,7 @@ package org.extvos.auth.service;
 import org.extvos.restlet.exception.RestletException;
 
 /**
- * @author shenmc
+ * @author Mingcai SHEN
  * <p>
  * SMSService provide the ability to send SMS Messages.
  */
