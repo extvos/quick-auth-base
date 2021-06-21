@@ -1,6 +1,6 @@
 # quick-auth-base
 
-基础认证服务，基于`Shiro`提供用户登入登出接口，以及相关的用户操作接口。模块本身不存储用户数据信息，依赖于应用方注入实现了`org.extvos.auth.service.QuickAuthService`的bean完成用户信息的存取操作。
+基础认证服务，基于`Shiro`提供用户登入登出接口，以及相关的用户操作接口。模块本身不存储用户数据信息，依赖于应用方注入实现了`plus.extvos.auth.service.QuickAuthService`的bean完成用户信息的存取操作。
 
 ## 相关配置项
 ```ini

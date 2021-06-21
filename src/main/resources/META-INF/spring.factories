@@ -1,3 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-org.extvos.auth.config.AuthBaseAutoConfigure,\
-org.extvos.auth.handler.ShiroExceptionHandler
+plus.extvos.auth.config.AuthBaseAutoConfigure,\
+plus.extvos.auth.handler.ShiroExceptionHandler
