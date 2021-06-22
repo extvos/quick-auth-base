@@ -105,17 +105,10 @@
 
     <distributionManagement>
         <repository>
-            <!--这里的id与settings.xml中的servers节点配置的用户ID一直，这样才能使用配置的用户去上传到maven私有仓库 -->
-            <!--此仓库对应的为RELEASE版本的jar-->
-            <id>username</id>
-            <url>http://nexus.extvos.org/repository/maven-releases/</url>
+            <id>github</id>
+            <name>GitHub OWNER Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/extvos/quickstart</url>
         </repository>
-        <snapshotRepository>
-            <!--这里的id与settings.xml中的servers节点配置的用户ID一直，这样才能使用配置的用户去上传到maven私有仓库 -->
-            <!--此仓库对应的为SNAPSHOT版本的jar-->
-            <id>username</id>
-            <url>http://nexus.extvos.org/repository/maven-snapshots/</url>
-        </snapshotRepository>
     </distributionManagement>
 
 
