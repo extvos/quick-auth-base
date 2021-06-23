@@ -7,7 +7,7 @@ import java.util.Map;
  * @author Mingcai SHEN
  */
 public class UserInfo implements Serializable {
-    private Serializable id;
+    private Serializable userId;
     private String username;
     private String password;
     private String cellphone;
@@ -16,26 +16,26 @@ public class UserInfo implements Serializable {
     private Map<String, Object> extraInfo;
 
     public UserInfo(Serializable id, String username, String password, String cellphone) {
-        this.id = id;
+        this.userId = id;
         this.username = username;
         this.password = password;
         this.cellphone = cellphone;
     }
 
     public UserInfo(Serializable id, String username, String password, String cellphone, Map<String, Object> extraInfo) {
-        this.id = id;
+        this.userId = id;
         this.username = username;
         this.password = password;
         this.cellphone = cellphone;
         this.extraInfo = extraInfo;
     }
 
-    public Serializable getId() {
-        return id;
+    public Serializable getUserId() {
+        return userId;
     }
 
-    public void setId(Serializable id) {
-        this.id = id;
+    public void setUserId(Serializable userId) {
+        this.userId = userId;
     }
 
     public String getUsername() {

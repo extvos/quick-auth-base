@@ -62,12 +62,12 @@ public class QuickRealm extends AuthorizingRealm {
             //添加角色和权限
             SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
 
-            for (RoleInfo role : quickAuthService.getRoles(user.getId())) {
+            for (RoleInfo role : quickAuthService.getRoles(user.getUserId())) {
                 //添加角色
                 simpleAuthorizationInfo.addRole(role.getCode());
             }
             //添加权限
-            for (PermissionInfo permission : quickAuthService.getPermissions(user.getId())) {
+            for (PermissionInfo permission : quickAuthService.getPermissions(user.getUserId())) {
                 simpleAuthorizationInfo.addStringPermission(permission.getCode());
             }
             return simpleAuthorizationInfo;

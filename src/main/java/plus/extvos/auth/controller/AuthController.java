@@ -373,12 +373,12 @@ public class AuthController {
 //        Assert.notEmpty(username, RestletException.forbidden("can not get current username"));
 //        UserInfo userInfo = quickAuthService.getUserByName(username, false);
         Assert.notNull(userInfo, RestletException.forbidden("can not get current userInfo"));
-        List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getId());
+        List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getUserId());
         List<String> roleCodes = new LinkedList<>();
         roles.forEach(role -> {
             roleCodes.add(role.getCode());
         });
-        List<PermissionInfo> perms = quickAuthService.getPermissions(userInfo.getId());
+        List<PermissionInfo> perms = quickAuthService.getPermissions(userInfo.getUserId());
         List<String> permCodes = new LinkedList<>();
         perms.forEach(role -> {
             permCodes.add(role.getCode());
