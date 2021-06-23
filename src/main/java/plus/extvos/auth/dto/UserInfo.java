@@ -4,15 +4,53 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
+ * UserInfo presented information of logged in user with basic properties and
+ * connected open account properties if current session is logged via open account.
  * @author Mingcai SHEN
  */
 public class UserInfo implements Serializable {
+    /**
+     * User Id
+     */
     private Serializable userId;
+
+    /**
+     * Username
+     */
     private String username;
+    /**
+     * Password
+     */
     private String password;
+
+    /**
+     * Cellphone
+     */
     private String cellphone;
+
+    /**
+     * Granted roles for user
+     */
     private String[] roles;
+
+    /**
+     * Granted permissions for user
+     */
     private String[] permissions;
+
+    /**
+     * Current logged in session by provider
+     */
+    private String provider;
+
+    /**
+     * Current logged in session by openId
+     */
+    private String openId;
+
+    /**
+     * Extra information of open account connected to provider
+     */
     private Map<String, Object> extraInfo;
 
     public UserInfo(Serializable id, String username, String password, String cellphone) {
@@ -76,6 +114,22 @@ public class UserInfo implements Serializable {
 
     public void setCellphone(String cellphone) {
         this.cellphone = cellphone;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
+    public String getOpenId() {
+        return openId;
+    }
+
+    public void setOpenId(String openId) {
+        this.openId = openId;
     }
 
     public Map<String, Object> getExtraInfo() {
