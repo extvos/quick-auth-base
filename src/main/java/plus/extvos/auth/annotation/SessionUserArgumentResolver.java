@@ -32,11 +32,12 @@ public class SessionUserArgumentResolver implements HandlerMethodArgumentResolve
         if (null == subject) {
             return null;
         }
-        Session session = subject.getSession();
         if (supportsParameter(parameter) && subject.isAuthenticated()) {
+
             if (parameter.getParameterType().equals(String.class)) {
                 return subject.getPrincipal();
             } else if (parameter.getParameterType().equals(UserInfo.class)) {
+                Session session = subject.getSession();
                 try {
                     return (UserInfo) session.getAttribute(UserInfo.USER_INFO_KEY);
                 } catch (RestletException e) {
@@ -44,6 +45,6 @@ public class SessionUserArgumentResolver implements HandlerMethodArgumentResolve
                 }
             }
         }
-        return subject.getPrincipal();
+        return null;
     }
 }

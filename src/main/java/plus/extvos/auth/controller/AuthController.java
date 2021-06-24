@@ -372,8 +372,6 @@ public class AuthController {
     @GetMapping("/profile")
     @RequiresAuthentication
     public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws RestletException {
-//        Assert.notEmpty(username, RestletException.forbidden("can not get current username"));
-//        UserInfo userInfo = quickAuthService.getUserByName(username, false);
         Assert.notNull(userInfo, RestletException.forbidden("can not get current userInfo"));
         List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getUserId());
         List<String> roleCodes = new LinkedList<>();
