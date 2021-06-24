@@ -10,6 +10,8 @@ import java.util.Map;
  * @author Mingcai SHEN
  */
 public class UserInfo implements Serializable {
+
+    public static final String USER_INFO_KEY = "QUICK_USER_INFO";
     /**
      * User Id
      */

@@ -136,6 +136,8 @@ public class AuthController {
         Result<?> result;
         try {
             sub.login(token);
+            UserInfo userInfo = quickAuthService.getUserByName(username,true);
+            sess.setAttribute(UserInfo.USER_INFO_KEY,userInfo);
             if (redirectUri != null && !redirectUri.isEmpty()) {
                 redirectUri += "?code=" + sess.getId();
                 response.sendRedirect(redirectUri);

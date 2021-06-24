@@ -3,6 +3,7 @@ package plus.extvos.auth.shiro;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.session.mgt.SessionContext;
 import org.apache.shiro.session.mgt.SessionKey;
+import org.apache.shiro.session.mgt.eis.SessionDAO;
 import org.apache.shiro.web.servlet.Cookie;
 import org.apache.shiro.web.servlet.ShiroHttpServletRequest;
 import org.apache.shiro.web.servlet.SimpleCookie;
@@ -34,6 +35,11 @@ public class QuickSessionManager extends DefaultWebSessionManager implements Web
     public QuickSessionManager() {
         super();
         this.setDeleteInvalidSessions(true);
+    }
+
+    public QuickSessionManager(SessionDAO sessionDAO) {
+        super();
+        this.sessionDAO = sessionDAO;
     }
 
     @Override

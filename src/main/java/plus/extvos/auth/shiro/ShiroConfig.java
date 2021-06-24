@@ -6,6 +6,7 @@ import org.apache.shiro.cache.MemoryConstrainedCacheManager;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.session.mgt.SessionManager;
+import org.apache.shiro.session.mgt.eis.SessionDAO;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition;
@@ -36,6 +37,9 @@ public class ShiroConfig {
 
     @Autowired
     private QuickAuthConfig baseAuthConfig;
+
+    @Autowired(required = false)
+    private SessionDAO quickSessionDAO;
 
     @Bean
     public CacheManager getCacheManager() {
@@ -73,9 +77,11 @@ public class ShiroConfig {
      */
     @Bean
     public SessionManager sessionManager() {
-        return new QuickSessionManager();
-//        shiroSessionManager.setSessionDAO(redisSessionDAO());
-//        return sessionManager;
+        if(null == quickSessionDAO){
+            return new QuickSessionManager();
+        } else{
+            return new QuickSessionManager(quickSessionDAO);
+        }
     }
 
     /**
