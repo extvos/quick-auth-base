@@ -1,17 +1,16 @@
 package plus.extvos.auth.annotation;
 
-import plus.extvos.auth.dto.UserInfo;
-import plus.extvos.auth.service.QuickAuthService;
-import plus.extvos.restlet.exception.RestletException;
-import plus.extvos.restlet.utils.SpringContextHolder;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
+import plus.extvos.auth.dto.UserInfo;
+import plus.extvos.auth.service.QuickAuthService;
+import plus.extvos.restlet.exception.RestletException;
+import plus.extvos.restlet.utils.SpringContextHolder;
 
 /**
  * {@link SessionUser} 注解的解析

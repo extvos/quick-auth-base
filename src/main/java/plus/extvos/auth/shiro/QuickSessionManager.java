@@ -1,6 +1,5 @@
 package plus.extvos.auth.shiro;
 
-import plus.extvos.common.Validator;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.session.mgt.SessionContext;
 import org.apache.shiro.session.mgt.SessionKey;
@@ -12,6 +11,7 @@ import org.apache.shiro.web.session.mgt.WebSessionManager;
 import org.apache.shiro.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plus.extvos.common.Validator;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -42,7 +42,7 @@ public class QuickSessionManager extends DefaultWebSessionManager implements Web
 
         if (!WebUtils.isHttp(context)) {
             log.debug("SessionContext argument is not HTTP compatible or does not have an HTTP request/response " +
-                    "pair. No session ID cookie will be set.");
+                "pair. No session ID cookie will be set.");
             return;
 
         }
@@ -108,7 +108,7 @@ public class QuickSessionManager extends DefaultWebSessionManager implements Web
             removeSessionId(request, response);
         } else {
             log.debug("SessionKey argument is not HTTP compatible or does not have an HTTP request/response " +
-                    "pair. Session ID cookie will not be removed due to stopped session.");
+                "pair. Session ID cookie will not be removed due to stopped session.");
         }
     }
 

@@ -1,7 +1,5 @@
 package plus.extvos.auth.shiro;
 
-import plus.extvos.auth.config.QuickAuthConfig;
-import plus.extvos.auth.service.QuickFilterCustomizer;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.cache.CacheManager;
 import org.apache.shiro.cache.MemoryConstrainedCacheManager;
@@ -18,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import plus.extvos.auth.config.QuickAuthConfig;
+import plus.extvos.auth.service.QuickFilterCustomizer;
 
 import javax.servlet.Filter;
 import java.util.LinkedHashMap;
@@ -44,8 +44,6 @@ public class ShiroConfig {
 //        em.setCacheManagerConfigFile("classpath:ehcache-shiro.xml");
 //        return em;
     }
-
-
 
 
     /**

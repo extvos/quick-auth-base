@@ -6,6 +6,7 @@ import java.util.Map;
 /**
  * UserInfo presented information of logged in user with basic properties and
  * connected open account properties if current session is logged via open account.
+ *
  * @author Mingcai SHEN
  */
 public class UserInfo implements Serializable {
