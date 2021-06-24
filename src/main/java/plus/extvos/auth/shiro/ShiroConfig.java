@@ -1,13 +1,12 @@
 package plus.extvos.auth.shiro;
 
-import plus.extvos.auth.config.QuickAuthConfig;
-import plus.extvos.auth.service.QuickFilterCustomizer;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.cache.CacheManager;
 import org.apache.shiro.cache.MemoryConstrainedCacheManager;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.session.mgt.SessionManager;
+import org.apache.shiro.session.mgt.eis.SessionDAO;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition;
@@ -18,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import plus.extvos.auth.config.QuickAuthConfig;
+import plus.extvos.auth.service.QuickFilterCustomizer;
 
 import javax.servlet.Filter;
 import java.util.LinkedHashMap;
@@ -37,6 +38,9 @@ public class ShiroConfig {
     @Autowired
     private QuickAuthConfig baseAuthConfig;
 
+    @Autowired(required = false)
+    private SessionDAO quickSessionDAO;
+
     @Bean
     public CacheManager getCacheManager() {
         return new MemoryConstrainedCacheManager();
@@ -44,8 +48,6 @@ public class ShiroConfig {
 //        em.setCacheManagerConfigFile("classpath:ehcache-shiro.xml");
 //        return em;
     }
-
-
 
 
     /**
@@ -75,9 +77,11 @@ public class ShiroConfig {
      */
     @Bean
     public SessionManager sessionManager() {
-        return new QuickSessionManager();
-//        shiroSessionManager.setSessionDAO(redisSessionDAO());
-//        return sessionManager;
+        if(null == quickSessionDAO){
+            return new QuickSessionManager();
+        } else{
+            return new QuickSessionManager(quickSessionDAO);
+        }
     }
 
     /**

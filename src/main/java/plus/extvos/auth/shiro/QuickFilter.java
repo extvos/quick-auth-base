@@ -1,10 +1,6 @@
 package plus.extvos.auth.shiro;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import plus.extvos.auth.config.QuickAuthConfig;
-import plus.extvos.restlet.RestletCode;
-import plus.extvos.restlet.Result;
-import plus.extvos.restlet.utils.SpringContextHolder;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.session.Session;
@@ -12,6 +8,10 @@ import org.apache.shiro.subject.Subject;
 import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plus.extvos.auth.config.QuickAuthConfig;
+import plus.extvos.restlet.RestletCode;
+import plus.extvos.restlet.Result;
+import plus.extvos.restlet.utils.SpringContextHolder;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;

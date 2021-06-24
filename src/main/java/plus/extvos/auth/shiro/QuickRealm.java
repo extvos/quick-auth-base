@@ -1,12 +1,5 @@
 package plus.extvos.auth.shiro;
 
-import plus.extvos.auth.dto.PermissionInfo;
-import plus.extvos.auth.dto.RoleInfo;
-import plus.extvos.auth.dto.UserInfo;
-import plus.extvos.auth.enums.AuthCode;
-import plus.extvos.auth.service.QuickAuthService;
-import plus.extvos.restlet.exception.RestletException;
-import plus.extvos.restlet.utils.SpringContextHolder;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationInfo;
@@ -19,6 +12,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
+import plus.extvos.auth.dto.PermissionInfo;
+import plus.extvos.auth.dto.RoleInfo;
+import plus.extvos.auth.dto.UserInfo;
+import plus.extvos.auth.enums.AuthCode;
+import plus.extvos.auth.service.QuickAuthService;
+import plus.extvos.restlet.exception.RestletException;
+import plus.extvos.restlet.utils.SpringContextHolder;
 
 /**
  * @author Mingcai SHEN
@@ -62,12 +62,12 @@ public class QuickRealm extends AuthorizingRealm {
             //添加角色和权限
             SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
 
-            for (RoleInfo role : quickAuthService.getRoles(user.getId())) {
+            for (RoleInfo role : quickAuthService.getRoles(user.getUserId())) {
                 //添加角色
                 simpleAuthorizationInfo.addRole(role.getCode());
             }
             //添加权限
-            for (PermissionInfo permission : quickAuthService.getPermissions(user.getId())) {
+            for (PermissionInfo permission : quickAuthService.getPermissions(user.getUserId())) {
                 simpleAuthorizationInfo.addStringPermission(permission.getCode());
             }
             return simpleAuthorizationInfo;

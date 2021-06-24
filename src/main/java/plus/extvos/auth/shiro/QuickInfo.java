@@ -1,9 +1,9 @@
 package plus.extvos.auth.shiro;
 
-import plus.extvos.auth.dto.UserInfo;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.SimplePrincipalCollection;
+import plus.extvos.auth.dto.UserInfo;
 
 /**
  * @author Mingcai SHEN

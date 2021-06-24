@@ -1,8 +1,8 @@
 package plus.extvos.auth.utils;
 
-import plus.extvos.restlet.Assert;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.shiro.crypto.hash.SimpleHash;
+import plus.extvos.restlet.Assert;
 
 /**
  * @author Mingcai SHEN

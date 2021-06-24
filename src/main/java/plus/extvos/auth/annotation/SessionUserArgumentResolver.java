@@ -1,17 +1,15 @@
 package plus.extvos.auth.annotation;
 
-import plus.extvos.auth.dto.UserInfo;
-import plus.extvos.auth.service.QuickAuthService;
-import plus.extvos.restlet.exception.RestletException;
-import plus.extvos.restlet.utils.SpringContextHolder;
 import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
+import plus.extvos.auth.dto.UserInfo;
+import plus.extvos.restlet.exception.RestletException;
 
 /**
  * {@link SessionUser} 注解的解析
@@ -19,15 +17,6 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  * @author Mingcai SHEN
  */
 public class SessionUserArgumentResolver implements HandlerMethodArgumentResolver {
-
-    private QuickAuthService quickAuthService;
-
-    private QuickAuthService getAuthService() {
-        if (quickAuthService == null) {
-            quickAuthService = SpringContextHolder.getBean(QuickAuthService.class);
-        }
-        return quickAuthService;
-    }
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -44,16 +33,18 @@ public class SessionUserArgumentResolver implements HandlerMethodArgumentResolve
             return null;
         }
         if (supportsParameter(parameter) && subject.isAuthenticated()) {
+
             if (parameter.getParameterType().equals(String.class)) {
                 return subject.getPrincipal();
             } else if (parameter.getParameterType().equals(UserInfo.class)) {
+                Session session = subject.getSession();
                 try {
-                    return getAuthService().getUserByName(subject.getPrincipal().toString(), false);
+                    return (UserInfo) session.getAttribute(UserInfo.USER_INFO_KEY);
                 } catch (RestletException e) {
                     return null;
                 }
             }
         }
-        return subject.getPrincipal();
+        return null;
     }
 }

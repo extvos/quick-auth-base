@@ -1,11 +1,11 @@
 package plus.extvos.auth.shiro;
 
-import plus.extvos.auth.utils.CredentialHash;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plus.extvos.auth.utils.CredentialHash;
 
 /**
  * @author Mingcai SHEN

@@ -1,6 +1,20 @@
 package plus.extvos.auth.controller;
 
 import com.google.code.kaptcha.Producer;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.*;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.session.Session;
+import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 import plus.extvos.auth.annotation.SessionUser;
 import plus.extvos.auth.config.QuickAuthConfig;
 import plus.extvos.auth.dto.PermissionInfo;
@@ -17,20 +31,6 @@ import plus.extvos.restlet.Assert;
 import plus.extvos.restlet.RestletCode;
 import plus.extvos.restlet.Result;
 import plus.extvos.restlet.exception.RestletException;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.*;
-import org.apache.shiro.authz.annotation.RequiresAuthentication;
-import org.apache.shiro.session.Session;
-import org.apache.shiro.subject.Subject;
-import org.apache.shiro.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.ModelAndView;
 
 import javax.imageio.ImageIO;
 import javax.servlet.ServletOutputStream;
@@ -69,16 +69,16 @@ public class AuthController {
     @ApiOperation("登录账户")
     @PostMapping("/login")
     Result<?> doLogin(
-            @RequestParam(value = "username", required = false) String username,
-            @RequestParam(value = "password", required = false) String password,
-            @RequestParam(value = "cellphone", required = false) String cellphone,
-            @RequestParam(value = "smscode", required = false) String smscode,
-            @RequestParam(value = "salt", required = false) String salt,
-            @RequestParam(value = "algorithm", required = false) String algorithm,
-            @RequestParam(value = "captcha", required = false) String captcha,
-            @RequestParam(value = "redirectUri", required = false) String redirectUri,
-            @RequestBody(required = false) Map<String, String> params,
-            HttpServletResponse response) throws RestletException {
+        @RequestParam(value = "username", required = false) String username,
+        @RequestParam(value = "password", required = false) String password,
+        @RequestParam(value = "cellphone", required = false) String cellphone,
+        @RequestParam(value = "smscode", required = false) String smscode,
+        @RequestParam(value = "salt", required = false) String salt,
+        @RequestParam(value = "algorithm", required = false) String algorithm,
+        @RequestParam(value = "captcha", required = false) String captcha,
+        @RequestParam(value = "redirectUri", required = false) String redirectUri,
+        @RequestBody(required = false) Map<String, String> params,
+        HttpServletResponse response) throws RestletException {
         if (params != null && !params.isEmpty()) {
             username = params.getOrDefault("username", username);
             password = params.getOrDefault("password", password);
@@ -136,6 +136,8 @@ public class AuthController {
         Result<?> result;
         try {
             sub.login(token);
+            UserInfo userInfo = quickAuthService.getUserByName(username,true);
+            sess.setAttribute(UserInfo.USER_INFO_KEY,userInfo);
             if (redirectUri != null && !redirectUri.isEmpty()) {
                 redirectUri += "?code=" + sess.getId();
                 response.sendRedirect(redirectUri);
@@ -204,7 +206,7 @@ public class AuthController {
     @RequestMapping(value = "/captcha", method = RequestMethod.GET)
     @ResponseBody
     protected Result<String> getCaptchaImageInText(@RequestParam(required = false) Map<String, Object> ignoredQueries)
-            throws IOException {
+        throws IOException {
         Subject subject = SecurityUtils.getSubject();
         Session session = subject.getSession(true);
         // 生成验证码文本
@@ -291,9 +293,9 @@ public class AuthController {
     @ApiOperation(value = "用户注册", notes = "注册一个新用户接口")
     @PostMapping("/register")
     public Result<?> registerUser(
-            @RequestParam(value = "username", required = false) String username,
-            @RequestParam(value = "password", required = false) String password,
-            @RequestBody(required = false) Map<String, Object> params) throws RestletException {
+        @RequestParam(value = "username", required = false) String username,
+        @RequestParam(value = "password", required = false) String password,
+        @RequestBody(required = false) Map<String, Object> params) throws RestletException {
         Assert.isTrue(authConfig.isRegisterAllowed(), RestletException.forbidden("self register is not allowed"));
         Assert.notEmpty(params, RestletException.forbidden("invalid empty request body"));
         String[] perms = null;
@@ -370,15 +372,13 @@ public class AuthController {
     @GetMapping("/profile")
     @RequiresAuthentication
     public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws RestletException {
-//        Assert.notEmpty(username, RestletException.forbidden("can not get current username"));
-//        UserInfo userInfo = quickAuthService.getUserByName(username, false);
         Assert.notNull(userInfo, RestletException.forbidden("can not get current userInfo"));
-        List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getId());
+        List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getUserId());
         List<String> roleCodes = new LinkedList<>();
         roles.forEach(role -> {
             roleCodes.add(role.getCode());
         });
-        List<PermissionInfo> perms = quickAuthService.getPermissions(userInfo.getId());
+        List<PermissionInfo> perms = quickAuthService.getPermissions(userInfo.getUserId());
         List<String> permCodes = new LinkedList<>();
         perms.forEach(role -> {
             permCodes.add(role.getCode());

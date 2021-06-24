@@ -4,38 +4,79 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
+ * UserInfo presented information of logged in user with basic properties and
+ * connected open account properties if current session is logged via open account.
+ *
  * @author Mingcai SHEN
  */
 public class UserInfo implements Serializable {
-    private Serializable id;
+
+    public static final String USER_INFO_KEY = "QUICK_USER_INFO";
+    /**
+     * User Id
+     */
+    private Serializable userId;
+
+    /**
+     * Username
+     */
     private String username;
+    /**
+     * Password
+     */
     private String password;
+
+    /**
+     * Cellphone
+     */
     private String cellphone;
+
+    /**
+     * Granted roles for user
+     */
     private String[] roles;
+
+    /**
+     * Granted permissions for user
+     */
     private String[] permissions;
+
+    /**
+     * Current logged in session by provider
+     */
+    private String provider;
+
+    /**
+     * Current logged in session by openId
+     */
+    private String openId;
+
+    /**
+     * Extra information of open account connected to provider
+     */
     private Map<String, Object> extraInfo;
 
     public UserInfo(Serializable id, String username, String password, String cellphone) {
-        this.id = id;
+        this.userId = id;
         this.username = username;
         this.password = password;
         this.cellphone = cellphone;
     }
 
     public UserInfo(Serializable id, String username, String password, String cellphone, Map<String, Object> extraInfo) {
-        this.id = id;
+        this.userId = id;
         this.username = username;
         this.password = password;
         this.cellphone = cellphone;
         this.extraInfo = extraInfo;
     }
 
-    public Serializable getId() {
-        return id;
+    public Serializable getUserId() {
+        return userId;
     }
 
-    public void setId(Serializable id) {
-        this.id = id;
+    public void setUserId(Serializable userId) {
+        this.userId = userId;
     }
 
     public String getUsername() {
@@ -76,6 +117,22 @@ public class UserInfo implements Serializable {
 
     public void setCellphone(String cellphone) {
         this.cellphone = cellphone;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
+    public String getOpenId() {
+        return openId;
+    }
+
+    public void setOpenId(String openId) {
+        this.openId = openId;
     }
 
     public Map<String, Object> getExtraInfo() {
