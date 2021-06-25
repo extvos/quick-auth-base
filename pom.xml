@@ -126,4 +126,34 @@
     </distributionManagement>
 
 
+    <licenses>
+        <license>
+            <name>GNU GPL v3</name>
+            <url>https://www.gnu.org/licenses/gpl.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Mingcai SHEN</name>
+            <email>archsh@gmail.com</email>
+            <organization>Shenzhen Cygnux Technologies Ltd.</organization>
+            <organizationUrl>https://www.cygnux.cn</organizationUrl>
+        </developer>
+    </developers>
+
+    <organization>
+        <name>Shenzhen Cygnux Technologies Ltd.</name>
+        <url>https://www.cygnux.cn</url>
+    </organization>
+
+    <scm>
+        <url>https://github.com/extvos/quick-auth-base.git</url>
+        <connection>scm:git:git://github.com/extvos/quick-auth-base.git</connection>
+        <developerConnection>scm:git:git@github.com:extvos/quick-auth-base.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+
 </project>
