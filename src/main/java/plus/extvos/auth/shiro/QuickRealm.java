@@ -17,8 +17,8 @@ import plus.extvos.auth.dto.RoleInfo;
 import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.auth.enums.AuthCode;
 import plus.extvos.auth.service.QuickAuthService;
-import plus.extvos.restlet.exception.RestletException;
-import plus.extvos.restlet.utils.SpringContextHolder;
+import plus.extvos.common.exception.ResultException;
+import plus.extvos.common.utils.SpringContextHolder;
 
 /**
  * @author Mingcai SHEN
@@ -101,7 +101,7 @@ public class QuickRealm extends AuthorizingRealm {
                 log.debug("doGetAuthenticationInfo> got user by username {}", userInfo);
                 return new QuickInfo(userInfo);
             }
-        } catch (RestletException e) {
+        } catch (ResultException e) {
             log.error("doGetAuthenticationInfo 1>", e);
             if (AuthCode.ACCOUNT_NOT_FOUND.equals(e.getCode())) {
                 throw new CredentialsException(e.getMessage());

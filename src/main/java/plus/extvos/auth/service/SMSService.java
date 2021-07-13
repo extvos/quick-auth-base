@@ -1,6 +1,6 @@
 package plus.extvos.auth.service;
 
-import plus.extvos.restlet.exception.RestletException;
+import plus.extvos.common.exception.ResultException;
 
 /**
  * @author Mingcai SHEN
@@ -14,7 +14,7 @@ public interface SMSService {
      * @param phone cellphone number
      * @param code  code to be sent
      * @return true if sent
-     * @throws RestletException if errors
+     * @throws ResultException if errors
      */
-    boolean sendSecretCode(String phone, String code) throws RestletException;
+    boolean sendSecretCode(String phone, String code) throws ResultException;
 }

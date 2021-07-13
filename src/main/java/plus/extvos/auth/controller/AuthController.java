@@ -27,10 +27,10 @@ import plus.extvos.auth.shiro.QuickToken;
 import plus.extvos.auth.utils.CredentialGenerator;
 import plus.extvos.auth.utils.CredentialHash;
 import plus.extvos.common.Validator;
-import plus.extvos.restlet.Assert;
-import plus.extvos.restlet.RestletCode;
-import plus.extvos.restlet.Result;
-import plus.extvos.restlet.exception.RestletException;
+import plus.extvos.common.Assert;
+import plus.extvos.common.ResultCode;
+import plus.extvos.common.Result;
+import plus.extvos.common.exception.ResultException;
 
 import javax.imageio.ImageIO;
 import javax.servlet.ServletOutputStream;
@@ -78,7 +78,7 @@ public class AuthController {
         @RequestParam(value = "captcha", required = false) String captcha,
         @RequestParam(value = "redirectUri", required = false) String redirectUri,
         @RequestBody(required = false) Map<String, String> params,
-        HttpServletResponse response) throws RestletException {
+        HttpServletResponse response) throws ResultException {
         if (params != null && !params.isEmpty()) {
             username = params.getOrDefault("username", username);
             password = params.getOrDefault("password", password);
@@ -98,11 +98,11 @@ public class AuthController {
             String smsText = sess.getAttribute(SMSCODE_SESSION_KEY).toString();
             if (!smscode.equals(smsText)) {
                 log.error("doLogin:> [{}] 验证码错误", cellphone);
-                throw new RestletException(AuthCode.INCORRECT_SMSCODE, "验证码错误");
+                throw new ResultException(AuthCode.INCORRECT_SMSCODE, "验证码错误");
             } else {
                 UserInfo ui = quickAuthService.getUserByPhone(cellphone, true);
                 if (null == ui) {
-                    throw new RestletException(AuthCode.ACCOUNT_NOT_FOUND, "用户不存在");
+                    throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "用户不存在");
                 } else {
                     username = ui.getUsername();
                     password = ui.getPassword();
@@ -111,21 +111,21 @@ public class AuthController {
             // Remove it for avoid second use.
             sess.removeAttribute(SMSCODE_SESSION_KEY);
         } else {
-            Assert.notEmpty(username, new RestletException(AuthCode.USERNAME_REQUIRED, "Username required!"));
-            Assert.notEmpty(password, new RestletException(AuthCode.PASSWORD_REQUIRED, "Password required!"));
+            Assert.notEmpty(username, new ResultException(AuthCode.USERNAME_REQUIRED, "Username required!"));
+            Assert.notEmpty(password, new ResultException(AuthCode.PASSWORD_REQUIRED, "Password required!"));
             log.info("/auth/login: [{},{},{}]", username, password, redirectUri);
             if (authConfig.isSaltRequired()) {
-                Assert.notEmpty(salt, new RestletException(AuthCode.SALT_REQUIRED, "Salt required!"));
+                Assert.notEmpty(salt, new ResultException(AuthCode.SALT_REQUIRED, "Salt required!"));
             }
             if (authConfig.isCaptchaRequired()) {
-                Assert.notEmpty(captcha, new RestletException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
+                Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
             }
 
             if (captcha != null && !captcha.isEmpty()) {
                 String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
                 if (!captcha.equals(capText)) {
                     log.error("doLogin:> [{}] 验证码错误", username);
-                    throw new RestletException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
+                    throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
                 }
                 // Remove it for avoid second use.
                 sess.removeAttribute(CAPTCHA_SESSION_KEY);
@@ -179,13 +179,13 @@ public class AuthController {
             token.clear();
             return Result.message("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
         } catch (Exception e) {
-            return Result.message(e.getMessage()).failure(RestletCode.INTERNAL_SERVER_ERROR);
+            return Result.message(e.getMessage()).failure(ResultCode.INTERNAL_SERVER_ERROR);
         }
     }
 
     @ApiOperation(value = "退出登录", notes = "该接口永远返回正确值，默认情况下我们无需理会")
     @PostMapping("/logout")
-    public Result<?> doLogout() throws RestletException {
+    public Result<?> doLogout() throws ResultException {
         try {
             Subject subject = SecurityUtils.getSubject();
             log.debug("doLogout:> {} logout ...", subject.getPrincipal());
@@ -258,17 +258,17 @@ public class AuthController {
                                     @RequestParam(value = "captcha", required = false) String captcha,
                                     @RequestBody(required = false) Map<String, String> params) {
         if (null == smsService) {
-            throw RestletException.notImplemented("SMS service is unavailable.");
+            throw ResultException.notImplemented("SMS service is unavailable.");
         }
         if (Validator.notEmpty(params)) {
             cellphone = params.getOrDefault("cellphone", "");
             captcha = params.getOrDefault("captcha", "");
         }
 
-        Assert.notEmpty(cellphone, new RestletException(AuthCode.CELLPHONE_REQUIRED, "Cellphone required!"));
+        Assert.notEmpty(cellphone, new ResultException(AuthCode.CELLPHONE_REQUIRED, "Cellphone required!"));
 
         if (authConfig.isCaptchaRequired()) {
-            Assert.notEmpty(captcha, new RestletException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
+            Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
         }
         Subject sub = SecurityUtils.getSubject();
         Session sess = sub.getSession();
@@ -276,7 +276,7 @@ public class AuthController {
             String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
             if (!captcha.equals(capText)) {
                 log.error("performSMSCode:> [{}] 验证码错误", cellphone);
-                throw new RestletException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
+                throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
             }
             // Remove it for avoid second use.
             sess.removeAttribute(CAPTCHA_SESSION_KEY);
@@ -286,7 +286,7 @@ public class AuthController {
         if (smsService.sendSecretCode(cellphone, code)) {
             return Result.data("OK").success();
         } else {
-            throw RestletException.serviceUnavailable("send sms code failed.");
+            throw ResultException.serviceUnavailable("send sms code failed.");
         }
     }
 
@@ -295,9 +295,9 @@ public class AuthController {
     public Result<?> registerUser(
         @RequestParam(value = "username", required = false) String username,
         @RequestParam(value = "password", required = false) String password,
-        @RequestBody(required = false) Map<String, Object> params) throws RestletException {
-        Assert.isTrue(authConfig.isRegisterAllowed(), RestletException.forbidden("self register is not allowed"));
-        Assert.notEmpty(params, RestletException.forbidden("invalid empty request body"));
+        @RequestBody(required = false) Map<String, Object> params) throws ResultException {
+        Assert.isTrue(authConfig.isRegisterAllowed(), ResultException.forbidden("self register is not allowed"));
+        Assert.notEmpty(params, ResultException.forbidden("invalid empty request body"));
         String[] perms = null;
         String[] roles = null;
         if (Validator.notEmpty(params)) {
@@ -312,16 +312,16 @@ public class AuthController {
                 roles = (String[]) rs;
             }
         }
-        Assert.notEmpty(username, RestletException.forbidden("invalid empty username"));
-        Assert.notEmpty(password, RestletException.forbidden("invalid empty password"));
+        Assert.notEmpty(username, ResultException.forbidden("invalid empty username"));
+        Assert.notEmpty(password, ResultException.forbidden("invalid empty password"));
         params.remove("username");
         params.remove("password");
         UserInfo u = quickAuthService.getUserByName(username, false);
         if (u != null) {
-            throw RestletException.conflict("user with username '" + username + "' already exists");
+            throw ResultException.conflict("user with username '" + username + "' already exists");
         }
         Serializable userId = quickAuthService.createUserInfo(username, password, perms, roles, params);
-        Assert.notNull(userId, RestletException.serviceUnavailable("create user failed"));
+        Assert.notNull(userId, ResultException.serviceUnavailable("create user failed"));
         Map<String, Object> ret = new LinkedHashMap<>();
         ret.put("username", username);
         ret.put("userId", userId);
@@ -337,7 +337,7 @@ public class AuthController {
                                     @RequestParam(value = "salt", required = false) String salt,
                                     @RequestParam(value = "algorithm", required = false) String algorithm,
                                     @RequestBody(required = false) Map<String, String> params,
-                                    @SessionUser String username) throws RestletException {
+                                    @SessionUser String username) throws ResultException {
         if (Validator.notEmpty(params)) {
             oldPassword = params.getOrDefault("oldPassword", "");
             newPassword1 = params.getOrDefault("newPassword1", "");
@@ -345,24 +345,24 @@ public class AuthController {
             salt = params.getOrDefault("salt", "");
             algorithm = params.getOrDefault("algorithm", "");
         }
-        Assert.notEmpty(username, RestletException.forbidden("can not get current username"));
-        Assert.notEmpty(oldPassword, RestletException.badRequest("oldPassword can not be empty"));
-        Assert.notEmpty(newPassword1, RestletException.badRequest("newPassword1 can not be empty"));
-        Assert.notEmpty(newPassword2, RestletException.badRequest("newPassword2 can not be empty"));
-        Assert.equals(newPassword1, newPassword2, RestletException.badRequest("newPassword1 and newPassword2 should be the same"));
+        Assert.notEmpty(username, ResultException.forbidden("can not get current username"));
+        Assert.notEmpty(oldPassword, ResultException.badRequest("oldPassword can not be empty"));
+        Assert.notEmpty(newPassword1, ResultException.badRequest("newPassword1 can not be empty"));
+        Assert.notEmpty(newPassword2, ResultException.badRequest("newPassword2 can not be empty"));
+        Assert.equals(newPassword1, newPassword2, ResultException.badRequest("newPassword1 and newPassword2 should be the same"));
         UserInfo userInfo = quickAuthService.getUserByName(username, false);
         if (salt != null && !salt.isEmpty()) {
             algorithm = algorithm == null || algorithm.isEmpty() ? "MD5" : algorithm;
             try {
                 if (CredentialHash.algorithm(algorithm).salt(salt).password(userInfo.getPassword()).encrypt().equals(oldPassword)) {
-                    throw RestletException.forbidden("incorrect old password");
+                    throw ResultException.forbidden("incorrect old password");
                 }
             } catch (Exception e) {
                 log.warn(">>", e);
-                throw RestletException.badRequest("invalid algorithm or ...");
+                throw ResultException.badRequest("invalid algorithm or ...");
             }
         } else if (!oldPassword.equals(userInfo.getPassword())) {
-            throw RestletException.forbidden("incorrect old password");
+            throw ResultException.forbidden("incorrect old password");
         }
         quickAuthService.updateUserInfo(username, newPassword1, null, null, null);
         return Result.data("OK").success();
@@ -371,8 +371,8 @@ public class AuthController {
     @ApiOperation(value = "用户信息", notes = "获取当前会话用户信息")
     @GetMapping("/profile")
     @RequiresAuthentication
-    public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws RestletException {
-        Assert.notNull(userInfo, RestletException.forbidden("can not get current userInfo"));
+    public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws ResultException {
+        Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
         List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getUserId());
         List<String> roleCodes = new LinkedList<>();
         roles.forEach(role -> {

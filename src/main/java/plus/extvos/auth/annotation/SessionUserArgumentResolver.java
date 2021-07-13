@@ -9,7 +9,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import plus.extvos.auth.dto.UserInfo;
-import plus.extvos.restlet.exception.RestletException;
+import plus.extvos.common.exception.ResultException;
 
 /**
  * {@link SessionUser} 注解的解析
@@ -40,7 +40,7 @@ public class SessionUserArgumentResolver implements HandlerMethodArgumentResolve
                 Session session = subject.getSession();
                 try {
                     return (UserInfo) session.getAttribute(UserInfo.USER_INFO_KEY);
-                } catch (RestletException e) {
+                } catch (ResultException e) {
                     return null;
                 }
             }
