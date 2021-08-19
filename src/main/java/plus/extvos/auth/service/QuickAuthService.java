@@ -74,7 +74,7 @@ public interface QuickAuthService {
      * @return Serializable user id
      * @throws ResultException when errors
      */
-    Serializable createUserInfo(String username, String password, String[] permissions, String[] roles, Map<String, Object> params) throws ResultException;
+    Serializable createUserInfo(String username, String password, short status, String[] permissions, String[] roles, Map<String, Object> params) throws ResultException;
 
 
     /**

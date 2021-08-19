@@ -23,6 +23,7 @@ import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.auth.enums.AuthCode;
 import plus.extvos.auth.service.QuickAuthService;
 import plus.extvos.auth.service.SMSService;
+import plus.extvos.auth.service.UserRegisterHook;
 import plus.extvos.auth.shiro.QuickToken;
 import plus.extvos.auth.utils.CredentialGenerator;
 import plus.extvos.auth.utils.CredentialHash;
@@ -59,6 +60,9 @@ public class AuthController {
 
     @Autowired
     private QuickAuthService quickAuthService;
+
+    @Autowired(required = false)
+    private UserRegisterHook userRegisterHook;
 
     @Autowired(required = false)
     private SMSService smsService;
@@ -300,27 +304,41 @@ public class AuthController {
         Assert.notEmpty(params, ResultException.forbidden("invalid empty request body"));
         String[] perms = null;
         String[] roles = null;
+        Short status = 0;
         if (Validator.notEmpty(params)) {
-            username = params.getOrDefault("username", "").toString();
-            password = params.getOrDefault("password", "").toString();
-            Object pms = params.get("permissions");
-            if (pms instanceof String[]) {
-                perms = (String[]) pms;
-            }
-            Object rs = params.get("roles");
-            if (rs instanceof String[]) {
-                roles = (String[]) rs;
-            }
+            username = params.getOrDefault("username", username).toString();
+            password = params.getOrDefault("password", password).toString();
+//            Object pms = params.get("permissions");
+//            if (pms instanceof String) {
+//                perms = Arrays.stream(((String) pms).split(",")).toArray(String[]::new);
+//            } else if (pms instanceof Iterable) {
+//                perms = StreamSupport.stream(((Iterable<?>) pms).spliterator(), false).map(Object::toString).toArray(String[]::new);
+//            }
+//            Object rs = params.get("roles");
+//            if (rs instanceof String) {
+//                roles = Arrays.stream(((String) rs).split(",")).toArray(String[]::new);
+//            } else if (pms instanceof Iterable) {
+//                roles = StreamSupport.stream(((Iterable<?>) rs).spliterator(), false).map(Object::toString).toArray(String[]::new);
+//            }
         }
         Assert.notEmpty(username, ResultException.forbidden("invalid empty username"));
         Assert.notEmpty(password, ResultException.forbidden("invalid empty password"));
         params.remove("username");
         params.remove("password");
+        if (userRegisterHook != null) {
+            if (!userRegisterHook.preRegister(username, password, params, UserRegisterHook.OPEN)) {
+                throw ResultException.forbidden("not allowed to register user");
+            }
+            perms = userRegisterHook.defaultPermissions(UserRegisterHook.OPEN);
+            roles = userRegisterHook.defaultRoles(UserRegisterHook.OPEN);
+            status = userRegisterHook.defaultStatus(UserRegisterHook.OPEN);
+        }
         UserInfo u = quickAuthService.getUserByName(username, false);
         if (u != null) {
             throw ResultException.conflict("user with username '" + username + "' already exists");
         }
-        Serializable userId = quickAuthService.createUserInfo(username, password, perms, roles, params);
+
+        Serializable userId = quickAuthService.createUserInfo(username, password, status, perms, roles, params);
         Assert.notNull(userId, ResultException.serviceUnavailable("create user failed"));
         Map<String, Object> ret = new LinkedHashMap<>();
         ret.put("username", username);
