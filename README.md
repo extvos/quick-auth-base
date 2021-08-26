@@ -7,6 +7,7 @@
 quick.auth.base.secret = "quick"  # 用户内部数据加扰用，不对外产生作用，可忽略
 quick.auth.base.salt-required = false  # 是否强制要求终端登录加盐加扰
 quick.auth.base.captcha-required = false  # 是否强制终端要求验证码
+quick.auth.base.auto-captcha = false  # 自动要求验证码，通常在第一次登录的时候不需要，如果登录失败后则需要提供验证码
 quick.auth.base.register-allowed = false  # 是否允许通过接口注册
 quick.auth.base.auto-register = false  # 是否允许自动注册 （第三方登录匹配不到账号时）
 quick.auth.base.phone-required = false # 是否需求绑定电话号码（第三方登录时）
@@ -50,9 +51,14 @@ quick.auth.base.sms-code-length = 6   # 短信验证码的生成长度
 ```json
 {
 	"code": XXXXXX,
-    "msg": "xxxxxxxxxxxx"
+    "msg": "xxxxxxxxxxxx",
+    "data": {
+        "failures": 1    
+    }
 }
 ```
+
+`data.failures`: 登录失败计数
 
 `code`列表：
 - `40001` 验证码未提供

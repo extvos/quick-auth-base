@@ -54,6 +54,7 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private static final String CAPTCHA_SESSION_KEY = "CAPTCHA";
     private static final String SMSCODE_SESSION_KEY = "SMSCODE";
+    private static final String FAILURE_SESSION_COUNT = "FAILURE_COUNT";
 
     @Autowired
     private Producer captchaProducer;
@@ -70,6 +71,15 @@ public class AuthController {
     @Autowired
     private QuickAuthConfig authConfig;
 
+    private Map<String, Object> failureResult(int failures, String... errs) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("failures", failures);
+        if (errs.length > 0) {
+            m.put("error", errs[0]);
+        }
+        return m;
+    }
+
     @ApiOperation("登录账户")
     @PostMapping("/login")
     Result<?> doLogin(
@@ -83,6 +93,7 @@ public class AuthController {
         @RequestParam(value = "redirectUri", required = false) String redirectUri,
         @RequestBody(required = false) Map<String, String> params,
         HttpServletResponse response) throws ResultException {
+        /* Support client to login with FORM or in JSON format */
         if (params != null && !params.isEmpty()) {
             username = params.getOrDefault("username", username);
             password = params.getOrDefault("password", password);
@@ -96,16 +107,27 @@ public class AuthController {
         // Get subject and session
         Subject sub = SecurityUtils.getSubject();
         Session sess = sub.getSession();
-
+        Integer fn = (Integer) sess.getAttribute(FAILURE_SESSION_COUNT);
+        if (null == fn) {
+            fn = 0;
+        }
+        boolean isCaptchaRequired = authConfig.isCaptchaRequired();
+        log.info("doLogin:> failures: {}", fn);
+        // If isAutoCaptcha and current session was failed more than once, we force to check captcha.
+        // This is by session, we may need to support by source IP in the future.
+        if (fn > 0 && authConfig.isAutoCaptcha()) {
+            isCaptchaRequired = true;
+        }
         // Performing sms login first
         if (Validator.notEmpty(cellphone) && Validator.notEmpty(smscode)) {
             String smsText = sess.getAttribute(SMSCODE_SESSION_KEY).toString();
             if (!smscode.equals(smsText)) {
                 log.error("doLogin:> [{}] 验证码错误", cellphone);
-                throw new ResultException(AuthCode.INCORRECT_SMSCODE, "验证码错误");
+                throw new ResultException(AuthCode.INCORRECT_SMSCODE, "验证码错误", failureResult(fn + 1));
             } else {
                 UserInfo ui = quickAuthService.getUserByPhone(cellphone, true);
                 if (null == ui) {
+                    sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
                     throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "用户不存在");
                 } else {
                     username = ui.getUsername();
@@ -115,21 +137,27 @@ public class AuthController {
             // Remove it for avoid second use.
             sess.removeAttribute(SMSCODE_SESSION_KEY);
         } else {
-            Assert.notEmpty(username, new ResultException(AuthCode.USERNAME_REQUIRED, "Username required!"));
-            Assert.notEmpty(password, new ResultException(AuthCode.PASSWORD_REQUIRED, "Password required!"));
-            log.info("/auth/login: [{},{},{}]", username, password, redirectUri);
-            if (authConfig.isSaltRequired()) {
-                Assert.notEmpty(salt, new ResultException(AuthCode.SALT_REQUIRED, "Salt required!"));
-            }
-            if (authConfig.isCaptchaRequired()) {
-                Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
+            try {
+                Assert.notEmpty(username, new ResultException(AuthCode.USERNAME_REQUIRED, "Username required!", failureResult(fn + 1)));
+                Assert.notEmpty(password, new ResultException(AuthCode.PASSWORD_REQUIRED, "Password required!", failureResult(fn + 1)));
+                log.info("/auth/login: [{},{},{}]", username, password, redirectUri);
+                if (authConfig.isSaltRequired()) {
+                    Assert.notEmpty(salt, new ResultException(AuthCode.SALT_REQUIRED, "Salt required!", failureResult(fn + 1)));
+                }
+                if (isCaptchaRequired) {
+                    Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!", failureResult(fn + 1)));
+                }
+            } catch (ResultException e) {
+                sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+                throw e;
             }
 
             if (captcha != null && !captcha.isEmpty()) {
                 String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
                 if (!captcha.equals(capText)) {
                     log.error("doLogin:> [{}] 验证码错误", username);
-                    throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
+                    sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+                    throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误", failureResult(fn + 1));
                 }
                 // Remove it for avoid second use.
                 sess.removeAttribute(CAPTCHA_SESSION_KEY);
@@ -140,8 +168,8 @@ public class AuthController {
         Result<?> result;
         try {
             sub.login(token);
-            UserInfo userInfo = quickAuthService.getUserByName(username,true);
-            sess.setAttribute(UserInfo.USER_INFO_KEY,userInfo);
+            UserInfo userInfo = quickAuthService.getUserByName(username, true);
+            sess.setAttribute(UserInfo.USER_INFO_KEY, userInfo);
             if (redirectUri != null && !redirectUri.isEmpty()) {
                 redirectUri += "?code=" + sess.getId();
                 response.sendRedirect(redirectUri);
@@ -156,34 +184,42 @@ public class AuthController {
                 } else {
                     prof.put("redirect", false);
                 }
+                sess.removeAttribute(FAILURE_SESSION_COUNT);
                 return Result.data(prof).success();
             }
         } catch (UnknownAccountException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,用户不存在", username);
             token.clear();
-            return Result.message("用户不存在").failure(AuthCode.ACCOUNT_NOT_FOUND);
+            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            return Result.message("用户不存在").with(failureResult(fn + 1)).failure(AuthCode.ACCOUNT_NOT_FOUND);
         } catch (LockedAccountException lae) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户已锁定", username);
             token.clear();
-            return Result.message("账户已锁定").failure(AuthCode.ACCOUNT_LOCKED);
+            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            return Result.message("账户已锁定").with(failureResult(fn + 1)).failure(AuthCode.ACCOUNT_LOCKED);
         } catch (DisabledAccountException lae) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户未启用", username);
             token.clear();
-            return Result.message("账户未启用").failure(AuthCode.ACCOUNT_DISABLED);
+            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            return Result.message("账户未启用").with(failureResult(fn + 1)).failure(AuthCode.ACCOUNT_DISABLED);
         } catch (ExcessiveAttemptsException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,错误次数过多", username);
             token.clear();
-            return Result.message("错误次数过").failure(AuthCode.TOO_MAY_RETRIES);
+            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            return Result.message("错误次数过").with(failureResult(fn + 1)).failure(AuthCode.TOO_MAY_RETRIES);
         } catch (CredentialsException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,密码或用户名错误", username);
             token.clear();
-            return Result.message("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
+            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            return Result.message("密码或用户名错误").with(failureResult(fn + 1)).failure(AuthCode.INCORRECT_CREDENTIALS);
         } catch (AuthenticationException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,堆栈轨迹如下", username, e);
             token.clear();
-            return Result.message("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
+            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            return Result.message("密码或用户名错误").with(failureResult(fn + 1)).failure(AuthCode.INCORRECT_CREDENTIALS);
         } catch (Exception e) {
-            return Result.message(e.getMessage()).failure(ResultCode.INTERNAL_SERVER_ERROR);
+            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            return Result.message(e.getMessage()).with(failureResult(fn + 1)).failure(ResultCode.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -308,18 +344,6 @@ public class AuthController {
         if (Validator.notEmpty(params)) {
             username = params.getOrDefault("username", username).toString();
             password = params.getOrDefault("password", password).toString();
-//            Object pms = params.get("permissions");
-//            if (pms instanceof String) {
-//                perms = Arrays.stream(((String) pms).split(",")).toArray(String[]::new);
-//            } else if (pms instanceof Iterable) {
-//                perms = StreamSupport.stream(((Iterable<?>) pms).spliterator(), false).map(Object::toString).toArray(String[]::new);
-//            }
-//            Object rs = params.get("roles");
-//            if (rs instanceof String) {
-//                roles = Arrays.stream(((String) rs).split(",")).toArray(String[]::new);
-//            } else if (pms instanceof Iterable) {
-//                roles = StreamSupport.stream(((Iterable<?>) rs).spliterator(), false).map(Object::toString).toArray(String[]::new);
-//            }
         }
         Assert.notEmpty(username, ResultException.forbidden("invalid empty username"));
         Assert.notEmpty(password, ResultException.forbidden("invalid empty password"));

@@ -12,6 +12,7 @@ public class QuickAuthConfig {
     private String secret = "quick";
     private boolean saltRequired = false;
     private boolean captchaRequired = false;
+    private boolean autoCaptcha = false;
     private boolean registerAllowed = false;
     private boolean phoneRequired = false;
     private int smsCodeLength = 6;
@@ -26,6 +27,14 @@ public class QuickAuthConfig {
 
     public boolean isCaptchaRequired() {
         return captchaRequired;
+    }
+
+    public boolean isAutoCaptcha() {
+        return autoCaptcha;
+    }
+
+    public void setAutoCaptcha(boolean autoCaptcha) {
+        this.autoCaptcha = autoCaptcha;
     }
 
     public boolean isRegisterAllowed() {
