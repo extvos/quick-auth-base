@@ -53,7 +53,7 @@ public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private static final String CAPTCHA_SESSION_KEY = "CAPTCHA";
-    private static final String SMSCODE_SESSION_KEY = "SMSCODE";
+    private static final String VERIFIER_SESSION_KEY = "VERIFIER";
     private static final String FAILURE_SESSION_COUNT = "FAILURE_COUNT";
 
     @Autowired
@@ -83,22 +83,24 @@ public class AuthController {
     @ApiOperation("登录账户")
     @PostMapping("/login")
     Result<?> doLogin(
-        @RequestParam(value = "username", required = false) String username,
-        @RequestParam(value = "password", required = false) String password,
-        @RequestParam(value = "cellphone", required = false) String cellphone,
-        @RequestParam(value = "smscode", required = false) String smscode,
-        @RequestParam(value = "salt", required = false) String salt,
-        @RequestParam(value = "algorithm", required = false) String algorithm,
-        @RequestParam(value = "captcha", required = false) String captcha,
-        @RequestParam(value = "redirectUri", required = false) String redirectUri,
-        @RequestBody(required = false) Map<String, String> params,
-        HttpServletResponse response) throws ResultException {
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "cellphone", required = false) String cellphone,
+            @RequestParam(value = "verifier", required = false) String verifier,
+            @RequestParam(value = "password", required = false) String password,
+            @RequestParam(value = "salt", required = false) String salt,
+            @RequestParam(value = "algorithm", required = false) String algorithm,
+            @RequestParam(value = "captcha", required = false) String captcha,
+            @RequestParam(value = "redirectUri", required = false) String redirectUri,
+            @RequestBody(required = false) Map<String, String> params,
+            HttpServletResponse response) throws ResultException {
         /* Support client to login with FORM or in JSON format */
         if (params != null && !params.isEmpty()) {
             username = params.getOrDefault("username", username);
-            password = params.getOrDefault("password", password);
+            email = params.getOrDefault("email", email);
             cellphone = params.getOrDefault("cellphone", cellphone);
-            smscode = params.getOrDefault("smscode", smscode);
+            verifier = params.getOrDefault("verifier", verifier);
+            password = params.getOrDefault("password", password);
             salt = params.getOrDefault("salt", salt);
             algorithm = params.getOrDefault("algorithm", algorithm);
             captcha = params.getOrDefault("captcha", captcha);
@@ -118,27 +120,40 @@ public class AuthController {
         if (fn > 0 && authConfig.isAutoCaptcha()) {
             isCaptchaRequired = true;
         }
+        UserInfo userInfo = null;
+        String via = "";
+        if (Validator.notEmpty(username)) {
+            userInfo = quickAuthService.getUserByName(username, true);
+            via = "username(" + username + ")";
+        } else if (Validator.notEmpty(email)) {
+            userInfo = quickAuthService.getUserByEmail(email, true);
+            via = "email(" + email + ")";
+        } else if (Validator.notEmpty(cellphone)) {
+            userInfo = quickAuthService.getUserByPhone(cellphone, true);
+            via = "cellphone(" + cellphone + ")";
+        } else {
+            throw ResultException.badRequest("username of email or cellphone required");
+        }
+        if (null == userInfo) {
+            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            throw ResultException.notFound(via + " not exists");
+        }
+        log.debug("Via " + via + " >" + userInfo.getUsername());
+        username = userInfo.getUsername();
         // Performing sms login first
-        if (Validator.notEmpty(cellphone) && Validator.notEmpty(smscode)) {
-            String smsText = sess.getAttribute(SMSCODE_SESSION_KEY).toString();
-            if (!smscode.equals(smsText)) {
-                log.error("doLogin:> [{}] 验证码错误", cellphone);
-                throw new ResultException(AuthCode.INCORRECT_SMSCODE, "验证码错误", failureResult(fn + 1));
+        if ((Validator.notEmpty(cellphone) || Validator.notEmpty(email)) && Validator.notEmpty(verifier)) {
+            String smsText = sess.getAttribute(VERIFIER_SESSION_KEY).toString();
+            if (!verifier.equals(smsText)) {
+                log.error("doLogin:> [{}:{}] 验证码错误", cellphone, email);
+                throw new ResultException(AuthCode.INCORRECT_VERIFIER, "验证码错误", failureResult(fn + 1));
             } else {
-                UserInfo ui = quickAuthService.getUserByPhone(cellphone, true);
-                if (null == ui) {
-                    sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
-                    throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "用户不存在");
-                } else {
-                    username = ui.getUsername();
-                    password = ui.getPassword();
-                }
+                password = userInfo.getPassword();
             }
             // Remove it for avoid second use.
-            sess.removeAttribute(SMSCODE_SESSION_KEY);
+            sess.removeAttribute(VERIFIER_SESSION_KEY);
         } else {
             try {
-                Assert.notEmpty(username, new ResultException(AuthCode.USERNAME_REQUIRED, "Username required!", failureResult(fn + 1)));
+//                Assert.notEmpty(username, new ResultException(AuthCode.USERNAME_REQUIRED, "Username required!", failureResult(fn + 1)));
                 Assert.notEmpty(password, new ResultException(AuthCode.PASSWORD_REQUIRED, "Password required!", failureResult(fn + 1)));
                 log.info("/auth/login: [{},{},{}]", username, password, redirectUri);
                 if (authConfig.isSaltRequired()) {
@@ -168,7 +183,7 @@ public class AuthController {
         Result<?> result;
         try {
             sub.login(token);
-            UserInfo userInfo = quickAuthService.getUserByName(username, true);
+//            UserInfo userInfo = quickAuthService.getUserByName(username, true);
             sess.setAttribute(UserInfo.USER_INFO_KEY, userInfo);
             if (redirectUri != null && !redirectUri.isEmpty()) {
                 redirectUri += "?code=" + sess.getId();
@@ -246,7 +261,7 @@ public class AuthController {
     @RequestMapping(value = "/captcha", method = RequestMethod.GET)
     @ResponseBody
     protected Result<String> getCaptchaImageInText(@RequestParam(required = false) Map<String, Object> ignoredQueries)
-        throws IOException {
+            throws IOException {
         Subject subject = SecurityUtils.getSubject();
         Session session = subject.getSession(true);
         // 生成验证码文本
@@ -322,7 +337,7 @@ public class AuthController {
             sess.removeAttribute(CAPTCHA_SESSION_KEY);
         }
         String code = CredentialGenerator.getDecimalDigits(authConfig.getSmsCodeLength());
-        sess.setAttribute(SMSCODE_SESSION_KEY, code);
+        sess.setAttribute(VERIFIER_SESSION_KEY, code);
         if (smsService.sendSecretCode(cellphone, code)) {
             return Result.data("OK").success();
         } else {
@@ -333,9 +348,9 @@ public class AuthController {
     @ApiOperation(value = "用户注册", notes = "注册一个新用户接口")
     @PostMapping("/register")
     public Result<?> registerUser(
-        @RequestParam(value = "username", required = false) String username,
-        @RequestParam(value = "password", required = false) String password,
-        @RequestBody(required = false) Map<String, Object> params) throws ResultException {
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "password", required = false) String password,
+            @RequestBody(required = false) Map<String, Object> params) throws ResultException {
         Assert.isTrue(authConfig.isRegisterAllowed(), ResultException.forbidden("self register is not allowed"));
         Assert.notEmpty(params, ResultException.forbidden("invalid empty request body"));
         String[] perms = null;

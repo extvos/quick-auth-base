@@ -46,6 +46,17 @@ public interface QuickAuthService {
 
 
     /**
+     * Get UserInfo by email address
+     *
+     * @param email        email address
+     * @param checkEnabled check if user enabled or not
+     * @return UserInfo
+     * @throws ResultException when errors
+     */
+    UserInfo getUserByEmail(String email, boolean checkEnabled) throws ResultException;
+
+
+    /**
      * Get user roles by id
      *
      * @param id userid
