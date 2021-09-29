@@ -1,6 +1,7 @@
 package plus.extvos.auth.dto;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -141,5 +142,20 @@ public class UserInfo implements Serializable {
 
     public void setExtraInfo(Map<String, Object> extraInfo) {
         this.extraInfo = extraInfo;
+    }
+
+    @Override
+    public String toString() {
+        return "UserInfo{" +
+                "userId=" + userId +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", cellphone='" + cellphone + '\'' +
+                ", roles=" + Arrays.toString(roles) +
+                ", permissions=" + Arrays.toString(permissions) +
+                ", provider='" + provider + '\'' +
+                ", openId='" + openId + '\'' +
+                ", extraInfo=" + extraInfo +
+                '}';
     }
 }
