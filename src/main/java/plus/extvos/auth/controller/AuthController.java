@@ -21,6 +21,7 @@ import plus.extvos.auth.dto.PermissionInfo;
 import plus.extvos.auth.dto.RoleInfo;
 import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.auth.enums.AuthCode;
+import plus.extvos.auth.service.QuickAuthCallback;
 import plus.extvos.auth.service.QuickAuthService;
 import plus.extvos.auth.service.SMSService;
 import plus.extvos.auth.service.UserRegisterHook;
@@ -61,6 +62,9 @@ public class AuthController {
 
     @Autowired
     private QuickAuthService quickAuthService;
+
+    @Autowired(required = false)
+    private QuickAuthCallback quickAuthCallback;
 
     @Autowired(required = false)
     private UserRegisterHook userRegisterHook;
@@ -183,7 +187,10 @@ public class AuthController {
         Result<?> result;
         try {
             sub.login(token);
-//            UserInfo userInfo = quickAuthService.getUserByName(username, true);
+            userInfo = quickAuthService.fillUserInfo(userInfo);
+            if (null != quickAuthCallback) {
+                userInfo = quickAuthCallback.onLoggedIn(userInfo);
+            }
             sess.setAttribute(UserInfo.USER_INFO_KEY, userInfo);
             if (redirectUri != null && !redirectUri.isEmpty()) {
                 redirectUri += "?code=" + sess.getId();
@@ -240,11 +247,14 @@ public class AuthController {
 
     @ApiOperation(value = "退出登录", notes = "该接口永远返回正确值，默认情况下我们无需理会")
     @PostMapping("/logout")
-    public Result<?> doLogout() throws ResultException {
+    public Result<?> doLogout(@SessionUser UserInfo userInfo) throws ResultException {
         try {
             Subject subject = SecurityUtils.getSubject();
             log.debug("doLogout:> {} logout ...", subject.getPrincipal());
             subject.logout();
+            if (null != quickAuthCallback) {
+                quickAuthCallback.onLogout(userInfo);
+            }
         } catch (Exception e) {
             log.warn("doLogout:> failed: ", e);
         }
@@ -430,18 +440,18 @@ public class AuthController {
     @RequiresAuthentication
     public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws ResultException {
         Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
-        List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getUserId());
-        List<String> roleCodes = new LinkedList<>();
-        roles.forEach(role -> {
-            roleCodes.add(role.getCode());
-        });
-        List<PermissionInfo> perms = quickAuthService.getPermissions(userInfo.getUserId());
-        List<String> permCodes = new LinkedList<>();
-        perms.forEach(role -> {
-            permCodes.add(role.getCode());
-        });
-        userInfo.setRoles(roleCodes.toArray(new String[0]));
-        userInfo.setPermissions(permCodes.toArray(new String[0]));
+//        List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getId());
+//        List<String> roleCodes = new LinkedList<>();
+//        roles.forEach(role -> {
+//            roleCodes.add(role.getCode());
+//        });
+//        List<PermissionInfo> perms = quickAuthService.getPermissions(userInfo.getId());
+//        List<String> permCodes = new LinkedList<>();
+//        perms.forEach(role -> {
+//            permCodes.add(role.getCode());
+//        });
+//        userInfo.setRoles(roleCodes.toArray(new String[0]));
+//        userInfo.setPermissions(permCodes.toArray(new String[0]));
         userInfo.setPassword("******");
 
         return Result.data(userInfo).success();

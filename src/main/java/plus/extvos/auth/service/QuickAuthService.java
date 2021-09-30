@@ -75,10 +75,20 @@ public interface QuickAuthService {
     List<PermissionInfo> getPermissions(Serializable id) throws ResultException;
 
     /**
+     * Fill userInfo object with more details like roles, permissions etc...
+     *
+     * @param userInfo original userInfo
+     * @return new filled userInfo
+     * @throws ResultException when error
+     */
+    UserInfo fillUserInfo(UserInfo userInfo) throws ResultException;
+
+    /**
      * Create new user info into database or other persistent storage
      *
      * @param username    string
      * @param password    string
+     * @param status      short
      * @param permissions permissions list
      * @param roles       roles list
      * @param params      extra properties of user.
