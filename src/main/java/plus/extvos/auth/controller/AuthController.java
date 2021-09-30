@@ -138,7 +138,7 @@ public class AuthController {
             sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
             throw ResultException.notFound(via + " not exists");
         }
-        log.debug("Via " + via + " >" + userInfo.getUsername());
+        log.debug("Via " + via + " > " + userInfo.getUsername());
         username = userInfo.getUsername();
         // Performing sms login first
         if ((Validator.notEmpty(cellphone) || Validator.notEmpty(email)) && Validator.notEmpty(verifier)) {

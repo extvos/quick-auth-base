@@ -33,6 +33,11 @@ public class UserInfo implements Serializable {
     private String cellphone;
 
     /**
+     * Email
+     */
+    private String email;
+
+    /**
      * Granted roles for user
      */
     private String[] roles;
@@ -57,18 +62,20 @@ public class UserInfo implements Serializable {
      */
     private Map<String, Object> extraInfo;
 
-    public UserInfo(Serializable id, String username, String password, String cellphone) {
+    public UserInfo(Serializable id, String username, String password, String cellphone, String email) {
         this.userId = id;
         this.username = username;
         this.password = password;
         this.cellphone = cellphone;
+        this.email = email;
     }
 
-    public UserInfo(Serializable id, String username, String password, String cellphone, Map<String, Object> extraInfo) {
+    public UserInfo(Serializable id, String username, String password, String cellphone, String email, Map<String, Object> extraInfo) {
         this.userId = id;
         this.username = username;
         this.password = password;
         this.cellphone = cellphone;
+        this.email = email;
         this.extraInfo = extraInfo;
     }
 
@@ -118,6 +125,14 @@ public class UserInfo implements Serializable {
 
     public void setCellphone(String cellphone) {
         this.cellphone = cellphone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getProvider() {
