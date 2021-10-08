@@ -1,5 +1,6 @@
 package plus.extvos.auth.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import springfox.documentation.builders.ApiInfoBuilder;
@@ -14,6 +15,7 @@ import springfox.documentation.spring.web.plugins.Docket;
 @ComponentScan("plus.extvos.auth")
 public class AuthBaseAutoConfigure {
     @Bean
+    @ConditionalOnProperty(prefix = "spring.swagger", name = "enabled", havingValue = "true")
     public Docket createAuthBaseDocket() {
         return new Docket(DocumentationType.SWAGGER_2)
             .groupName("鉴权认证服务")
