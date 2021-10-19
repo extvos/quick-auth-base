@@ -3,6 +3,7 @@ package plus.extvos.auth.shiro;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.cache.CacheManager;
 import org.apache.shiro.cache.MemoryConstrainedCacheManager;
+import org.apache.shiro.codec.Base64;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.session.mgt.SessionManager;
@@ -11,7 +12,9 @@ import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSource
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition;
 import org.apache.shiro.spring.web.config.ShiroFilterChainDefinition;
+import org.apache.shiro.web.mgt.CookieRememberMeManager;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+import org.apache.shiro.web.servlet.SimpleCookie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +24,7 @@ import plus.extvos.auth.config.QuickAuthConfig;
 import plus.extvos.auth.service.QuickFilterCustomizer;
 
 import javax.servlet.Filter;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -77,12 +81,22 @@ public class ShiroConfig {
      */
     @Bean
     public SessionManager sessionManager() {
-        if(null == quickSessionDAO){
+        if (null == quickSessionDAO) {
             return new QuickSessionManager();
-        } else{
+        } else {
             return new QuickSessionManager(quickSessionDAO);
         }
     }
+
+//    @Bean
+//    public CookieRememberMeManager cookieRememberMeManager() {
+//        CookieRememberMeManager cookieRememberMeManager = new CookieRememberMeManager();
+//        SimpleCookie simpleCookie = new SimpleCookie("rememberMe");
+//        simpleCookie.setMaxAge(baseAuthConfig.getMaxAge());
+//        cookieRememberMeManager.setCookie(simpleCookie);
+//        cookieRememberMeManager.setCipherKey(baseAuthConfig.getSecretAsCypher());
+//        return cookieRememberMeManager;
+//    }
 
     /**
      * 权限管理，配置主要是Realm的管理认证
@@ -95,6 +109,7 @@ public class ShiroConfig {
         securityManager.setCacheManager(getCacheManager());
         securityManager.setRealm(quickRealm(getCacheManager()));
         securityManager.setSessionManager(sessionManager());
+//        securityManager.setRememberMeManager(cookieRememberMeManager());
         return securityManager;
     }
 

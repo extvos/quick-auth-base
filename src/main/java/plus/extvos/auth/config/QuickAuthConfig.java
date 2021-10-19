@@ -3,6 +3,8 @@ package plus.extvos.auth.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * @author Mingcai SHEN
  */
@@ -10,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "quick.auth.base")
 public class QuickAuthConfig {
     private String secret = "quick";
+    private int maxAge = 25920000;
     private boolean saltRequired = false;
     private boolean captchaRequired = false;
     private boolean autoCaptcha = false;
@@ -19,6 +22,21 @@ public class QuickAuthConfig {
 
     public String getSecret() {
         return secret;
+    }
+
+    public byte[] getSecretAsCypher() {
+        byte[] bs = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+        byte[] ss = secret.getBytes();
+        System.arraycopy(ss, 0, bs, 0, Math.min(ss.length, 16));
+        return bs;
+    }
+
+    public int getMaxAge() {
+        return maxAge;
+    }
+
+    public void setMaxAge(int maxAge) {
+        this.maxAge = maxAge;
     }
 
     public boolean isSaltRequired() {
