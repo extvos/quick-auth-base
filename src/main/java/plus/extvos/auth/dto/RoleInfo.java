@@ -27,4 +27,12 @@ public class RoleInfo {
     public void setDesc(String desc) {
         this.desc = desc;
     }
+
+    @Override
+    public String toString() {
+        return "RoleInfo{" +
+                "code='" + code + '\'' +
+                ", desc='" + desc + '\'' +
+                '}';
+    }
 }

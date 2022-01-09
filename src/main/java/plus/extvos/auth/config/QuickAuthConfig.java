@@ -3,6 +3,8 @@ package plus.extvos.auth.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * @author Mingcai SHEN
  */
@@ -10,8 +12,10 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "quick.auth.base")
 public class QuickAuthConfig {
     private String secret = "quick";
+    private int maxAge = 25920000;
     private boolean saltRequired = false;
     private boolean captchaRequired = false;
+    private boolean autoCaptcha = false;
     private boolean registerAllowed = false;
     private boolean phoneRequired = false;
     private int smsCodeLength = 6;
@@ -20,12 +24,35 @@ public class QuickAuthConfig {
         return secret;
     }
 
+    public byte[] getSecretAsCypher() {
+        byte[] bs = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+        byte[] ss = secret.getBytes();
+        System.arraycopy(ss, 0, bs, 0, Math.min(ss.length, 16));
+        return bs;
+    }
+
+    public int getMaxAge() {
+        return maxAge;
+    }
+
+    public void setMaxAge(int maxAge) {
+        this.maxAge = maxAge;
+    }
+
     public boolean isSaltRequired() {
         return saltRequired;
     }
 
     public boolean isCaptchaRequired() {
         return captchaRequired;
+    }
+
+    public boolean isAutoCaptcha() {
+        return autoCaptcha;
+    }
+
+    public void setAutoCaptcha(boolean autoCaptcha) {
+        this.autoCaptcha = autoCaptcha;
     }
 
     public boolean isRegisterAllowed() {

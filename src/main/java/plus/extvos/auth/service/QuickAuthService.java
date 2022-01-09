@@ -3,7 +3,7 @@ package plus.extvos.auth.service;
 import plus.extvos.auth.dto.PermissionInfo;
 import plus.extvos.auth.dto.RoleInfo;
 import plus.extvos.auth.dto.UserInfo;
-import plus.extvos.restlet.exception.RestletException;
+import plus.extvos.common.exception.ResultException;
 
 import java.io.Serializable;
 import java.util.List;
@@ -19,9 +19,9 @@ public interface QuickAuthService {
      * @param name          : username
      * @param checkEnabled: check if user enabled or not
      * @return UserInfo object
-     * @throws RestletException when errors
+     * @throws ResultException when errors
      */
-    UserInfo getUserByName(String name, boolean checkEnabled) throws RestletException;
+    UserInfo getUserByName(String name, boolean checkEnabled) throws ResultException;
 
     /**
      * Get UserInfo by id
@@ -29,9 +29,9 @@ public interface QuickAuthService {
      * @param id            of user
      * @param checkEnabled: check if user enabled or not
      * @return UserInfo
-     * @throws RestletException when errors
+     * @throws ResultException when errors
      */
-    UserInfo getUserById(Serializable id, boolean checkEnabled) throws RestletException;
+    UserInfo getUserById(Serializable id, boolean checkEnabled) throws ResultException;
 
 
     /**
@@ -40,9 +40,20 @@ public interface QuickAuthService {
      * @param phone        number
      * @param checkEnabled check if user enabled or not
      * @return UserInfo
-     * @throws RestletException when errors
+     * @throws ResultException when errors
      */
-    UserInfo getUserByPhone(String phone, boolean checkEnabled) throws RestletException;
+    UserInfo getUserByPhone(String phone, boolean checkEnabled) throws ResultException;
+
+
+    /**
+     * Get UserInfo by email address
+     *
+     * @param email        email address
+     * @param checkEnabled check if user enabled or not
+     * @return UserInfo
+     * @throws ResultException when errors
+     */
+    UserInfo getUserByEmail(String email, boolean checkEnabled) throws ResultException;
 
 
     /**
@@ -50,31 +61,41 @@ public interface QuickAuthService {
      *
      * @param id userid
      * @return role list
-     * @throws RestletException when errors
+     * @throws ResultException when errors
      */
-    List<RoleInfo> getRoles(Serializable id) throws RestletException;
+    List<RoleInfo> getRoles(Serializable id) throws ResultException;
 
     /**
      * Get user permissions by id
      *
      * @param id userid
      * @return permission list
-     * @throws RestletException when errors
+     * @throws ResultException when errors
      */
-    List<PermissionInfo> getPermissions(Serializable id) throws RestletException;
+    List<PermissionInfo> getPermissions(Serializable id) throws ResultException;
+
+    /**
+     * Fill userInfo object with more details like roles, permissions etc...
+     *
+     * @param userInfo original userInfo
+     * @return new filled userInfo
+     * @throws ResultException when error
+     */
+    UserInfo fillUserInfo(UserInfo userInfo) throws ResultException;
 
     /**
      * Create new user info into database or other persistent storage
      *
      * @param username    string
      * @param password    string
+     * @param status      short
      * @param permissions permissions list
      * @param roles       roles list
      * @param params      extra properties of user.
      * @return Serializable user id
-     * @throws RestletException when errors
+     * @throws ResultException when errors
      */
-    Serializable createUserInfo(String username, String password, String[] permissions, String[] roles, Map<String, Object> params) throws RestletException;
+    Serializable createUserInfo(String username, String password, short status, String[] permissions, String[] roles, Map<String, Object> params) throws ResultException;
 
 
     /**
@@ -85,7 +106,7 @@ public interface QuickAuthService {
      * @param permissions permissions list
      * @param roles       roles list
      * @param params      extra properties of user.
-     * @throws RestletException when errors
+     * @throws ResultException when errors
      */
-    void updateUserInfo(String username, String password, String[] permissions, String[] roles, Map<String, Object> params) throws RestletException;
+    void updateUserInfo(String username, String password, String[] permissions, String[] roles, Map<String, Object> params) throws ResultException;
 }

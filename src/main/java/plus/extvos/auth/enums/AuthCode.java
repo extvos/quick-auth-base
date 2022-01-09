@@ -1,6 +1,6 @@
 package plus.extvos.auth.enums;
 
-import plus.extvos.restlet.Code;
+import plus.extvos.common.Code;
 
 /**
  * @author Mingcai SHEN
@@ -15,7 +15,7 @@ public enum AuthCode implements Code {
     CELLPHONE_REQUIRED(40003, "手机号未提供 "),
     CAPTCHA_REQUIRED(40004, "验证码未提供 "),
     INCORRECT_CAPTCHA(40005, "验证码无效 "),
-    INCORRECT_SMSCODE(40006, "短信验证码无效 "),
+    INCORRECT_VERIFIER(40006, "验证码无效 "),
     SALT_REQUIRED(40007, "未提供加扰盐 "),
 
     /**

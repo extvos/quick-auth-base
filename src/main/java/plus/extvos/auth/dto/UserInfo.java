@@ -1,6 +1,7 @@
 package plus.extvos.auth.dto;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -32,6 +33,11 @@ public class UserInfo implements Serializable {
     private String cellphone;
 
     /**
+     * Email
+     */
+    private String email;
+
+    /**
      * Granted roles for user
      */
     private String[] roles;
@@ -56,18 +62,20 @@ public class UserInfo implements Serializable {
      */
     private Map<String, Object> extraInfo;
 
-    public UserInfo(Serializable id, String username, String password, String cellphone) {
+    public UserInfo(Serializable id, String username, String password, String cellphone, String email) {
         this.userId = id;
         this.username = username;
         this.password = password;
         this.cellphone = cellphone;
+        this.email = email;
     }
 
-    public UserInfo(Serializable id, String username, String password, String cellphone, Map<String, Object> extraInfo) {
+    public UserInfo(Serializable id, String username, String password, String cellphone, String email, Map<String, Object> extraInfo) {
         this.userId = id;
         this.username = username;
         this.password = password;
         this.cellphone = cellphone;
+        this.email = email;
         this.extraInfo = extraInfo;
     }
 
@@ -119,6 +127,14 @@ public class UserInfo implements Serializable {
         this.cellphone = cellphone;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     public String getProvider() {
         return provider;
     }
@@ -141,5 +157,20 @@ public class UserInfo implements Serializable {
 
     public void setExtraInfo(Map<String, Object> extraInfo) {
         this.extraInfo = extraInfo;
+    }
+
+    @Override
+    public String toString() {
+        return "UserInfo{" +
+                "userId=" + userId +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", cellphone='" + cellphone + '\'' +
+                ", roles=" + Arrays.toString(roles) +
+                ", permissions=" + Arrays.toString(permissions) +
+                ", provider='" + provider + '\'' +
+                ", openId='" + openId + '\'' +
+                ", extraInfo=" + extraInfo +
+                '}';
     }
 }

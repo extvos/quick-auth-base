@@ -88,7 +88,6 @@ public class QuickSessionManager extends DefaultWebSessionManager implements Web
     public Serializable getSessionId(ServletRequest request, ServletResponse response) {
         String token = WebUtils.toHttp(request).getHeader(X_AUTH_TOKEN);
         //If there is a token in the request header, the token is obtained from the request header
-        log.debug("getSessionId:> x-auth-token = {}", token);
         if (Validator.notEmpty(token)) {
             log.debug("getSessionId:> from x-auth-token = {}", token);
             request.setAttribute(ShiroHttpServletRequest.REFERENCED_SESSION_ID_SOURCE, REFERENCED_SESSION_ID_SOURCE);

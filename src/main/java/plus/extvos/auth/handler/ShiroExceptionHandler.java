@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.HandlerMethod;
-import plus.extvos.restlet.RestletCode;
-import plus.extvos.restlet.Result;
+import plus.extvos.common.ResultCode;
+import plus.extvos.common.Result;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -28,15 +28,15 @@ public class ShiroExceptionHandler {
             request.getMethod(), request.getRequestURI(), handlerMethod.getMethod().getName(), e.getMessage());
 
         if (e instanceof UnauthenticatedException) {
-            return Result.message("未认证").failure(RestletCode.UNAUTHORIZED);
+            return Result.message("未认证").failure(ResultCode.UNAUTHORIZED);
         }
         if (e instanceof UnauthorizedException) {
-            return Result.message("未授权").failure(RestletCode.FORBIDDEN);
+            return Result.message("未授权").failure(ResultCode.FORBIDDEN);
         }
         if (e instanceof AuthorizationException) {
-            return Result.message("认证失败").failure(RestletCode.UNAUTHORIZED);
+            return Result.message("认证失败").failure(ResultCode.UNAUTHORIZED);
         }
 
-        return Result.message("认证出错").failure(RestletCode.CONFLICT);
+        return Result.message("认证出错").failure(ResultCode.CONFLICT);
     }
 }

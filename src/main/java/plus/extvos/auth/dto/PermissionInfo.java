@@ -27,4 +27,12 @@ public class PermissionInfo {
     public void setDesc(String desc) {
         this.desc = desc;
     }
+
+    @Override
+    public String toString() {
+        return "PermissionInfo{" +
+                "code='" + code + '\'' +
+                ", desc='" + desc + '\'' +
+                '}';
+    }
 }

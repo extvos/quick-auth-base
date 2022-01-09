@@ -9,9 +9,9 @@ import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import plus.extvos.auth.config.QuickAuthConfig;
-import plus.extvos.restlet.RestletCode;
-import plus.extvos.restlet.Result;
-import plus.extvos.restlet.utils.SpringContextHolder;
+import plus.extvos.common.ResultCode;
+import plus.extvos.common.Result;
+import plus.extvos.common.utils.SpringContextHolder;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -46,9 +46,9 @@ public class QuickFilter extends AuthenticatingFilter {
         QuickAuthConfig cfg = SpringContextHolder.getBean(QuickAuthConfig.class);
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         httpResponse.setCharacterEncoding("UTF-8");
-        httpResponse.setStatus(RestletCode.UNAUTHORIZED.status());
+        httpResponse.setStatus(ResultCode.UNAUTHORIZED.status());
         ObjectMapper om = new ObjectMapper();
-        httpResponse.getWriter().print(om.writeValueAsString(Result.message("Logging Required").failure(RestletCode.UNAUTHORIZED)));
+        httpResponse.getWriter().print(om.writeValueAsString(Result.message("Logging Required").failure(ResultCode.UNAUTHORIZED)));
 
         return false;
     }
