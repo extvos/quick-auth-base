@@ -173,7 +173,7 @@ public class AuthController {
             }
 
             if (captcha != null && !captcha.isEmpty()) {
-                String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
+                String capText = null != sess.getAttribute(CAPTCHA_SESSION_KEY) ? sess.getAttribute(CAPTCHA_SESSION_KEY).toString() : "";
                 if (!captcha.equals(capText)) {
                     log.error("doLogin:> [{}] 验证码错误", username);
                     sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
