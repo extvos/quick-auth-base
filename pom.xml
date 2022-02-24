@@ -6,7 +6,7 @@
 
     <groupId>io.github.extvos</groupId>
     <artifactId>quick-auth-base</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>quick-auth-base</name>
     <description>认证基础模块</description>
     <url>https://github.com/extvos/quickstart</url>
@@ -99,7 +99,7 @@
         <dependency>
             <groupId>io.github.extvos</groupId>
             <artifactId>quick-lib-common</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 
