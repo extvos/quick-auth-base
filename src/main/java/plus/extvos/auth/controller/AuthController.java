@@ -112,7 +112,8 @@ public class AuthController {
         }
         // Get subject and session
         Subject sub = SecurityUtils.getSubject();
-        Session sess = sub.getSession();
+        // Need to create session here, when it's first access.
+        Session sess = sub.getSession(true);
         Integer fn = (Integer) sess.getAttribute(FAILURE_SESSION_COUNT);
         if (null == fn) {
             fn = 0;
@@ -172,7 +173,7 @@ public class AuthController {
             }
 
             if (captcha != null && !captcha.isEmpty()) {
-                String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
+                String capText = null != sess.getAttribute(CAPTCHA_SESSION_KEY) ? sess.getAttribute(CAPTCHA_SESSION_KEY).toString() : "";
                 if (!captcha.equals(capText)) {
                     log.error("doLogin:> [{}] 验证码错误", username);
                     sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
