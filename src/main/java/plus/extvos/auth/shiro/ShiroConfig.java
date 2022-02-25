@@ -56,6 +56,7 @@ public class ShiroConfig {
 
     /**
      * credential matcher
+     * @return credential matcher
      */
     @Bean
     public CredentialsMatcher quickCredentialsMatcher() {
@@ -65,8 +66,8 @@ public class ShiroConfig {
     /**
      * quickRealm
      *
-     * @param cacheManager
-     * @return
+     * @param cacheManager specify cache manager
+     * @return realm
      */
     @Bean
     public Realm quickRealm(CacheManager cacheManager) {
@@ -78,6 +79,7 @@ public class ShiroConfig {
 
     /**
      * Configure session manager
+     * @return session manager
      */
     @Bean
     public SessionManager sessionManager() {
@@ -196,8 +198,9 @@ public class ShiroConfig {
     }
 
     /**
-     * @param securityManager
-     * @return
+     * create authorization attribute advidor
+     * @param securityManager specify security manager
+     * @return AuthorizationAttributeSourceAdvisor
      */
     @Bean
     public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(SecurityManager securityManager) {

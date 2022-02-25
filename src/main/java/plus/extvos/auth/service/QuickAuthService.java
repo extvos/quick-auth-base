@@ -16,8 +16,8 @@ public interface QuickAuthService {
     /**
      * Get UserInfo by username
      *
-     * @param name          : username
-     * @param checkEnabled: check if user enabled or not
+     * @param name         username
+     * @param checkEnabled check if user enabled or not
      * @return UserInfo object
      * @throws ResultException when errors
      */
@@ -27,7 +27,7 @@ public interface QuickAuthService {
      * Get UserInfo by id
      *
      * @param id            of user
-     * @param checkEnabled: check if user enabled or not
+     * @param checkEnabled check if user enabled or not
      * @return UserInfo
      * @throws ResultException when errors
      */

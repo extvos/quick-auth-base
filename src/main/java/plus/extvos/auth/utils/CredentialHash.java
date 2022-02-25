@@ -100,9 +100,9 @@ public class CredentialHash {
 
 
     /**
-     * 生成盐值<br/>
-     *
-     * @return
+     * 生成盐值
+     * @param length of characters
+     * @return string of salt
      */
     public static String generateSalt(int length) {
         return RandomStringUtils.randomAlphabetic(length);
