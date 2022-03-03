@@ -17,8 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import plus.extvos.auth.annotation.SessionUser;
 import plus.extvos.auth.config.QuickAuthConfig;
-import plus.extvos.auth.dto.PermissionInfo;
-import plus.extvos.auth.dto.RoleInfo;
 import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.auth.enums.AuthCode;
 import plus.extvos.auth.service.QuickAuthCallback;
@@ -28,10 +26,10 @@ import plus.extvos.auth.service.UserRegisterHook;
 import plus.extvos.auth.shiro.QuickToken;
 import plus.extvos.auth.utils.CredentialGenerator;
 import plus.extvos.auth.utils.CredentialHash;
-import plus.extvos.common.Validator;
 import plus.extvos.common.Assert;
-import plus.extvos.common.ResultCode;
 import plus.extvos.common.Result;
+import plus.extvos.common.ResultCode;
+import plus.extvos.common.Validator;
 import plus.extvos.common.exception.ResultException;
 
 import javax.imageio.ImageIO;
@@ -42,7 +40,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * @author Mingcai SHEN
@@ -318,6 +319,27 @@ public class AuthController {
         return null;
     }
 
+    @ApiOperation(value = "校验验证码", notes = "校验当前session获取的验证码是否正确")
+    @PostMapping("/validate-captcha")
+    public Result<?> validateCaptcha(@RequestParam(value = "captcha") String captcha) {
+        if (null == captcha || captcha.isEmpty()) {
+            throw ResultException.badRequest("captcha required");
+        }
+        Subject sub = SecurityUtils.getSubject();
+        Session sess = sub.getSession();
+        if (null == sess) {
+            throw ResultException.badRequest("session not exists");
+        }
+        String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
+        if (!captcha.equals(capText)) {
+            log.error("performSMSCode:> [{}] 验证码错误", captcha);
+            throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
+        }
+        // Remove it for avoid second use.
+        sess.removeAttribute(CAPTCHA_SESSION_KEY);
+        return Result.data("OK").success();
+    }
+
     @ApiOperation(value = "发送手机验证码", notes = "根据用户手机号发送随机验证码，用于后续登录")
     @PostMapping("/send-smscode")
     public Result<?> performSMSCode(@RequestParam(value = "cellphone", required = false) String cellphone,
@@ -354,6 +376,27 @@ public class AuthController {
         } else {
             throw ResultException.serviceUnavailable("send sms code failed.");
         }
+    }
+
+    @ApiOperation(value = "校验手机验证码", notes = "校验当前发送的验证码")
+    @PostMapping("/validate-smscode")
+    public Result<?> validateSMSCode(@RequestParam(value = "code") String code) {
+        if (null == code || code.isEmpty()) {
+            throw ResultException.badRequest("code required");
+        }
+        Subject sub = SecurityUtils.getSubject();
+        Session sess = sub.getSession();
+        if (null == sess) {
+            throw ResultException.badRequest("session not exists");
+        }
+        String capText = sess.getAttribute(VERIFIER_SESSION_KEY).toString();
+        if (!code.equals(capText)) {
+            log.error("validateSMSCode:> [{}] 验证码错误", code);
+            throw new ResultException(AuthCode.INCORRECT_VERIFIER, "验证码错误");
+        }
+        // Remove it for avoid second use.
+        sess.removeAttribute(VERIFIER_SESSION_KEY);
+        return Result.data("OK").success();
     }
 
     @ApiOperation(value = "用户注册", notes = "注册一个新用户接口")
