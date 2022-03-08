@@ -148,8 +148,8 @@ public class AuthController {
         username = userInfo.getUsername();
         // Performing sms login first
         if ((Validator.notEmpty(cellphone) || Validator.notEmpty(email)) && Validator.notEmpty(verifier)) {
-            String smsText = sess.getAttribute(VERIFIER_SESSION_KEY).toString();
-            if (!verifier.equals(smsText)) {
+//            String smsText = sess.getAttribute(VERIFIER_SESSION_KEY).toString();
+            if (!verifier.equals(sess.getAttribute(VERIFIER_SESSION_KEY))) {
                 log.error("doLogin:> [{}:{}] 验证码错误", cellphone, email);
                 throw new ResultException(AuthCode.INCORRECT_VERIFIER, "验证码错误", failureResult(fn + 1));
             } else {
@@ -174,8 +174,8 @@ public class AuthController {
             }
 
             if (captcha != null && !captcha.isEmpty()) {
-                String capText = null != sess.getAttribute(CAPTCHA_SESSION_KEY) ? sess.getAttribute(CAPTCHA_SESSION_KEY).toString() : "";
-                if (!captcha.equals(capText)) {
+//                String capText = null != sess.getAttribute(CAPTCHA_SESSION_KEY) ? sess.getAttribute(CAPTCHA_SESSION_KEY).toString() : "";
+                if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
                     log.error("doLogin:> [{}] 验证码错误", username);
                     sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
                     throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误", failureResult(fn + 1));
@@ -330,8 +330,7 @@ public class AuthController {
         if (null == sess) {
             throw ResultException.badRequest("session not exists");
         }
-        String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
-        if (!captcha.equals(capText)) {
+        if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
             log.error("performSMSCode:> [{}] 验证码错误", captcha);
             throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
         }
@@ -361,8 +360,7 @@ public class AuthController {
         Subject sub = SecurityUtils.getSubject();
         Session sess = sub.getSession();
         if (captcha != null && !captcha.isEmpty()) {
-            String capText = sess.getAttribute(CAPTCHA_SESSION_KEY).toString();
-            if (!captcha.equals(capText)) {
+            if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
                 log.error("performSMSCode:> [{}] 验证码错误", cellphone);
                 throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
             }
@@ -389,8 +387,7 @@ public class AuthController {
         if (null == sess) {
             throw ResultException.badRequest("session not exists");
         }
-        String capText = sess.getAttribute(VERIFIER_SESSION_KEY).toString();
-        if (!code.equals(capText)) {
+        if (!code.equals(sess.getAttribute(VERIFIER_SESSION_KEY))) {
             log.error("validateSMSCode:> [{}] 验证码错误", code);
             throw new ResultException(AuthCode.INCORRECT_VERIFIER, "验证码错误");
         }
