@@ -10,7 +10,6 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import plus.extvos.auth.dto.PermissionInfo;
 import plus.extvos.auth.dto.RoleInfo;
@@ -27,7 +26,7 @@ public class QuickRealm extends AuthorizingRealm {
 
     private static final Logger log = LoggerFactory.getLogger(QuickRealm.class);
 
-    @Autowired
+//    @Autowired
     private QuickAuthService quickAuthService;
 
     @Override
