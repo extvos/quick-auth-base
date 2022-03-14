@@ -85,6 +85,40 @@ public class AuthController {
         return m;
     }
 
+    private boolean validateCaptcha(String captcha, ResultException... e) throws ResultException {
+        // Get subject and session
+        Subject sub = SecurityUtils.getSubject();
+        // Need to create session here, when it's first access.
+        Session sess = sub.getSession(true);
+        if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
+            if (e.length > 0) {
+                throw e[0];
+            } else {
+                return false;
+            }
+        }
+        // Remove it for avoid second use.
+        sess.removeAttribute(CAPTCHA_SESSION_KEY);
+        return true;
+    }
+
+    private boolean validateVerifier(String verifier, ResultException... e) throws ResultException {
+        // Get subject and session
+        Subject sub = SecurityUtils.getSubject();
+        // Need to create session here, when it's first access.
+        Session sess = sub.getSession(true);
+        if (!verifier.equals(sess.getAttribute(VERIFIER_SESSION_KEY))) {
+            if (e.length > 0) {
+                throw e[0];
+            } else {
+                return false;
+            }
+        }
+        // Remove it for avoid second use.
+        sess.removeAttribute(VERIFIER_SESSION_KEY);
+        return true;
+    }
+
     @ApiOperation("登录账户")
     @PostMapping("/login")
     Result<?> doLogin(
@@ -321,7 +355,7 @@ public class AuthController {
 
     @ApiOperation(value = "校验验证码", notes = "校验当前session获取的验证码是否正确")
     @PostMapping("/validate-captcha")
-    public Result<?> validateCaptcha(@RequestParam(value = "captcha") String captcha) {
+    public Result<?> validateCaptchaRequest(@RequestParam(value = "captcha") String captcha) {
         if (null == captcha || captcha.isEmpty()) {
             throw ResultException.badRequest("captcha required");
         }
@@ -378,7 +412,7 @@ public class AuthController {
 
     @ApiOperation(value = "校验手机验证码", notes = "校验当前发送的验证码")
     @PostMapping("/validate-smscode")
-    public Result<?> validateSMSCode(@RequestParam(value = "code") String code) {
+    public Result<?> validateSMSCodeRequest(@RequestParam(value = "code") String code) {
         if (null == code || code.isEmpty()) {
             throw ResultException.badRequest("code required");
         }
@@ -401,9 +435,19 @@ public class AuthController {
     public Result<?> registerUser(
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "password", required = false) String password,
+            @RequestParam(value = "captcha", required = false) String captcha,
+            @RequestParam(value = "verifier", required = false) String verifier,
             @RequestBody(required = false) Map<String, Object> params) throws ResultException {
         Assert.isTrue(authConfig.isRegisterAllowed(), ResultException.forbidden("self register is not allowed"));
         Assert.notEmpty(params, ResultException.forbidden("invalid empty request body"));
+        if (authConfig.isRegisterCaptchaRequired()) {
+            Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
+            validateCaptcha(captcha, new ResultException(AuthCode.INCORRECT_CAPTCHA, "Incorrect captcha"));
+        }
+        if (authConfig.isRegisterVerifierRequired()) {
+            Assert.notEmpty(verifier, new ResultException(AuthCode.VERIFIER_REQUIRED, "Verifier required!"));
+            validateVerifier(verifier, new ResultException(AuthCode.INCORRECT_VERIFIER, "Incorrect verifier"));
+        }
         String[] perms = null;
         String[] roles = null;
         Short status = 0;

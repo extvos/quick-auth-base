@@ -3,8 +3,6 @@ package plus.extvos.auth.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-import java.nio.charset.StandardCharsets;
-
 /**
  * @author Mingcai SHEN
  */
@@ -17,6 +15,8 @@ public class QuickAuthConfig {
     private boolean captchaRequired = false;
     private boolean autoCaptcha = false;
     private boolean registerAllowed = false;
+    private boolean registerCaptchaRequired = true;
+    private boolean registerVerifierRequired = false;
     private boolean phoneRequired = false;
     private int smsCodeLength = 6;
 
@@ -25,7 +25,7 @@ public class QuickAuthConfig {
     }
 
     public byte[] getSecretAsCypher() {
-        byte[] bs = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+        byte[] bs = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         byte[] ss = secret.getBytes();
         System.arraycopy(ss, 0, bs, 0, Math.min(ss.length, 16));
         return bs;
@@ -89,5 +89,21 @@ public class QuickAuthConfig {
 
     public void setSmsCodeLength(int smsCodeLength) {
         this.smsCodeLength = smsCodeLength;
+    }
+
+    public boolean isRegisterCaptchaRequired() {
+        return registerCaptchaRequired;
+    }
+
+    public void setRegisterCaptchaRequired(boolean registerCaptchaRequired) {
+        this.registerCaptchaRequired = registerCaptchaRequired;
+    }
+
+    public boolean isRegisterVerifierRequired() {
+        return registerVerifierRequired;
+    }
+
+    public void setRegisterVerifierRequired(boolean registerVerifierRequired) {
+        this.registerVerifierRequired = registerVerifierRequired;
     }
 }

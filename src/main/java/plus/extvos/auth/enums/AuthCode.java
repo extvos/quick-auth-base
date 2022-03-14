@@ -14,9 +14,10 @@ public enum AuthCode implements Code {
     PASSWORD_REQUIRED(40002, "密码未提供 "),
     CELLPHONE_REQUIRED(40003, "手机号未提供 "),
     CAPTCHA_REQUIRED(40004, "验证码未提供 "),
-    INCORRECT_CAPTCHA(40005, "验证码无效 "),
-    INCORRECT_VERIFIER(40006, "验证码无效 "),
-    SALT_REQUIRED(40007, "未提供加扰盐 "),
+    VERIFIER_REQUIRED(40005, "验证码未提供 "),
+    INCORRECT_CAPTCHA(40006, "验证码无效 "),
+    INCORRECT_VERIFIER(40007, "验证码无效 "),
+    SALT_REQUIRED(40008, "未提供加扰盐 "),
 
     /**
      *
