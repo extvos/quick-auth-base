@@ -480,6 +480,38 @@ public class AuthController {
         return Result.data(ret).success();
     }
 
+    @ApiOperation(value = "重置密码", notes = "重置用户密码")
+    @PostMapping("/reset-password")
+    @RequiresAuthentication
+    public Result<?> resetPassword(@RequestParam(value = "verifier", required = true) String verifier,
+                                   @RequestParam(value = "newPassword1", required = false) String newPassword1,
+                                   @RequestParam(value = "newPassword2", required = false) String newPassword2,
+                                   @RequestBody(required = false) Map<String, String> params,
+                                   @SessionUser String username) throws ResultException {
+        if (Validator.notEmpty(params)) {
+            verifier = params.getOrDefault("verifier", "");
+            newPassword1 = params.getOrDefault("newPassword1", "");
+            newPassword2 = params.getOrDefault("newPassword2", "");
+        }
+        Assert.notEmpty(username, ResultException.forbidden("can not get current username"));
+        Assert.notEmpty(verifier, ResultException.badRequest("verifier can not be empty"));
+        Assert.notEmpty(newPassword1, ResultException.badRequest("newPassword1 can not be empty"));
+        Assert.notEmpty(newPassword2, ResultException.badRequest("newPassword2 can not be empty"));
+        Assert.equals(newPassword1, newPassword2, ResultException.badRequest("newPassword1 and newPassword2 should be the same"));
+        UserInfo userInfo = quickAuthService.getUserByName(username, false);
+        if(null == userInfo){
+            throw ResultException.forbidden("can not get userInfo");
+        }
+        Subject subject = SecurityUtils.getSubject();
+        Session session = subject.getSession(false);
+        if(null == session){
+            throw ResultException.forbidden("not in a session");
+        }
+        Assert.equals(verifier,session.getAttribute(VERIFIER_SESSION_KEY),ResultException.forbidden("invalid verifier"));
+        quickAuthService.updateUserInfo(username, newPassword1, null, null, null);
+        return Result.data("OK").success();
+    }
+
     @ApiOperation(value = "更改密码", notes = "更改用户密码")
     @PostMapping("/change-password")
     @RequiresAuthentication
@@ -525,20 +557,7 @@ public class AuthController {
     @RequiresAuthentication
     public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws ResultException {
         Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
-//        List<RoleInfo> roles = quickAuthService.getRoles(userInfo.getId());
-//        List<String> roleCodes = new LinkedList<>();
-//        roles.forEach(role -> {
-//            roleCodes.add(role.getCode());
-//        });
-//        List<PermissionInfo> perms = quickAuthService.getPermissions(userInfo.getId());
-//        List<String> permCodes = new LinkedList<>();
-//        perms.forEach(role -> {
-//            permCodes.add(role.getCode());
-//        });
-//        userInfo.setRoles(roleCodes.toArray(new String[0]));
-//        userInfo.setPermissions(permCodes.toArray(new String[0]));
         userInfo.setPassword("******");
-
         return Result.data(userInfo).success();
     }
 }
