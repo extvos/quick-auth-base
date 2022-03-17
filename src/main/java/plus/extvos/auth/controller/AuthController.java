@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import plus.extvos.auth.annotation.SessionUser;
 import plus.extvos.auth.config.QuickAuthConfig;
+import plus.extvos.auth.dto.CheckResult;
 import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.auth.enums.AuthCode;
 import plus.extvos.auth.service.QuickAuthCallback;
@@ -499,15 +500,15 @@ public class AuthController {
         Assert.notEmpty(newPassword2, ResultException.badRequest("newPassword2 can not be empty"));
         Assert.equals(newPassword1, newPassword2, ResultException.badRequest("newPassword1 and newPassword2 should be the same"));
         UserInfo userInfo = quickAuthService.getUserByName(username, false);
-        if(null == userInfo){
+        if (null == userInfo) {
             throw ResultException.forbidden("can not get userInfo");
         }
         Subject subject = SecurityUtils.getSubject();
         Session session = subject.getSession(false);
-        if(null == session){
+        if (null == session) {
             throw ResultException.forbidden("not in a session");
         }
-        Assert.equals(verifier,session.getAttribute(VERIFIER_SESSION_KEY),ResultException.forbidden("invalid verifier"));
+        Assert.equals(verifier, session.getAttribute(VERIFIER_SESSION_KEY), ResultException.forbidden("invalid verifier"));
         quickAuthService.updateUserInfo(username, newPassword1, null, null, null);
         return Result.data("OK").success();
     }
@@ -559,5 +560,38 @@ public class AuthController {
         Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
         userInfo.setPassword("******");
         return Result.data(userInfo).success();
+    }
+
+    @PostMapping("/check-username")
+    @ApiOperation(value = "检查户名", notes = "按用户名检查户名是否已注册")
+    public Result<CheckResult> checkUsername(@RequestParam("username") String username) throws ResultException {
+        UserInfo m = quickAuthService.getUserByName(username, false);
+        if (null != m) {
+            return Result.data(new CheckResult("username", true)).success();
+        } else {
+            return Result.data(new CheckResult("username", false)).success();
+        }
+    }
+
+    @PostMapping("/check-email")
+    @ApiOperation(value = "检查户名", notes = "按邮件检查户名是否已注册")
+    public Result<CheckResult> checkEmail(@RequestParam("email") String email) throws ResultException {
+        UserInfo m = quickAuthService.getUserByEmail(email, false);
+        if (null != m) {
+            return Result.data(new CheckResult("email", true)).success();
+        } else {
+            return Result.data(new CheckResult("email", false)).success();
+        }
+    }
+
+    @PostMapping("/check-cellphone")
+    @ApiOperation(value = "检查户名", notes = "按电话检查户名是否已注册")
+    public Result<CheckResult> checkCellphone(@RequestParam("cellphone") String cellphone) throws ResultException {
+        UserInfo m = quickAuthService.getUserByPhone(cellphone, false);
+        if (null != m) {
+            return Result.data(new CheckResult("cellphone", true)).success();
+        } else {
+            return Result.data(new CheckResult("cellphone", false)).success();
+        }
     }
 }
