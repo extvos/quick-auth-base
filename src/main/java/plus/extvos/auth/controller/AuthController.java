@@ -243,6 +243,7 @@ public class AuthController {
                 } else {
                     prof.put("redirect", false);
                 }
+                userInfo.setPassword("*******");
                 prof.put("userInfo", userInfo);
                 sess.removeAttribute(FAILURE_SESSION_COUNT);
                 return Result.data(prof).success();
