@@ -18,6 +18,7 @@ import org.springframework.web.servlet.ModelAndView;
 import plus.extvos.auth.annotation.SessionUser;
 import plus.extvos.auth.config.QuickAuthConfig;
 import plus.extvos.auth.dto.CheckResult;
+import plus.extvos.auth.dto.LoginResult;
 import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.auth.enums.AuthCode;
 import plus.extvos.auth.service.QuickAuthCallback;
@@ -42,8 +43,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -77,13 +76,13 @@ public class AuthController {
     @Autowired
     private QuickAuthConfig authConfig;
 
-    private Map<String, Object> failureResult(int failures, String... errs) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("failures", failures);
+    private LoginResult failureResult(int failures, String... errs) {
+        LoginResult lr = new LoginResult();
+        lr.setFailures(failures);
         if (errs.length > 0) {
-            m.put("error", errs[0]);
+            lr.setError(errs[0]);
         }
-        return m;
+        return lr;
     }
 
     private boolean validateCaptcha(String captcha, ResultException... e) throws ResultException {
@@ -122,7 +121,7 @@ public class AuthController {
 
     @ApiOperation("登录账户")
     @PostMapping("/login")
-    Result<?> doLogin(
+    Result<LoginResult> doLogin(
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "email", required = false) String email,
             @RequestParam(value = "cellphone", required = false) String cellphone,
@@ -221,7 +220,6 @@ public class AuthController {
         }
         // Perform the login
         QuickToken token = new QuickToken(username, password, algorithm, salt);
-        Result<?> result;
         try {
             sub.login(token);
             userInfo = quickAuthService.fillUserInfo(userInfo);
@@ -234,59 +232,58 @@ public class AuthController {
                 response.sendRedirect(redirectUri);
                 return null;
             } else {
-                Map<String, Object> prof = new HashMap<>(5);
-                prof.put("username", token.getUsername());
-                if (StringUtils.hasLength(redirectUri)) {
-                    prof.put("redirectUri", redirectUri);
-                    prof.put("code", sess.getId());
-                    prof.put("redirect", true);
-                } else {
-                    prof.put("redirect", false);
-                }
                 userInfo.setPassword("*******");
-                prof.put("userInfo", userInfo);
+                LoginResult lr = new LoginResult(token.getUsername(), sess.getId(), null, null, userInfo);
+                if (StringUtils.hasLength(redirectUri)) {
+                    lr.setRedirectUri(redirectUri);
+                    lr.setRedirect(true);
+                } else {
+                    lr.setRedirect(false);
+                }
                 sess.removeAttribute(FAILURE_SESSION_COUNT);
-                return Result.data(prof).success();
+                return Result.data(lr).success();
             }
         } catch (UnknownAccountException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,用户不存在", username);
             token.clear();
             sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
-            return Result.message("用户不存在").with(failureResult(fn + 1)).failure(AuthCode.ACCOUNT_NOT_FOUND);
+//            return Result.data(failureResult(fn + 1)).setMsg("").failure();
+            return Result.data(failureResult(fn + 1)).setMsg("用户不存在").failure(AuthCode.ACCOUNT_NOT_FOUND);
         } catch (LockedAccountException lae) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户已锁定", username);
             token.clear();
             sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
-            return Result.message("账户已锁定").with(failureResult(fn + 1)).failure(AuthCode.ACCOUNT_LOCKED);
+            return Result.data(failureResult(fn + 1)).setMsg("账户已锁定").failure(AuthCode.ACCOUNT_LOCKED);
         } catch (DisabledAccountException lae) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户未启用", username);
             token.clear();
             sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
-            return Result.message("账户未启用").with(failureResult(fn + 1)).failure(AuthCode.ACCOUNT_DISABLED);
+            return Result.data(failureResult(fn + 1)).setMsg("账户未启用").failure(AuthCode.ACCOUNT_DISABLED);
         } catch (ExcessiveAttemptsException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,错误次数过多", username);
             token.clear();
             sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
-            return Result.message("错误次数过").with(failureResult(fn + 1)).failure(AuthCode.TOO_MAY_RETRIES);
+            return Result.data(failureResult(fn + 1)).setMsg("错误次数过").failure(AuthCode.TOO_MAY_RETRIES);
         } catch (CredentialsException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,密码或用户名错误", username);
             token.clear();
             sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
-            return Result.message("密码或用户名错误").with(failureResult(fn + 1)).failure(AuthCode.INCORRECT_CREDENTIALS);
+            return Result.data(failureResult(fn + 1)).setMsg("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
         } catch (AuthenticationException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,堆栈轨迹如下", username, e);
             token.clear();
             sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
-            return Result.message("密码或用户名错误").with(failureResult(fn + 1)).failure(AuthCode.INCORRECT_CREDENTIALS);
+            return Result.data(failureResult(fn + 1)).setMsg("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
         } catch (Exception e) {
             sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
-            return Result.message(e.getMessage()).with(failureResult(fn + 1)).failure(ResultCode.INTERNAL_SERVER_ERROR);
+            return Result.data(failureResult(fn + 1)).setMsg(e.getMessage()).failure(ResultCode.INTERNAL_SERVER_ERROR);
+//            return Result.message(e.getMessage()).with(failureResult(fn + 1)).failure(ResultCode.INTERNAL_SERVER_ERROR);
         }
     }
 
     @ApiOperation(value = "退出登录", notes = "该接口永远返回正确值，默认情况下我们无需理会")
     @PostMapping("/logout")
-    public Result<?> doLogout(@SessionUser UserInfo userInfo) throws ResultException {
+    public Result<String> doLogout(@SessionUser UserInfo userInfo) throws ResultException {
         try {
             Subject subject = SecurityUtils.getSubject();
             log.debug("doLogout:> {} logout ...", subject.getPrincipal());
@@ -358,7 +355,7 @@ public class AuthController {
 
     @ApiOperation(value = "校验验证码", notes = "校验当前session获取的验证码是否正确")
     @PostMapping("/validate-captcha")
-    public Result<?> validateCaptchaRequest(@RequestParam(value = "captcha") String captcha) {
+    public Result<String> validateCaptchaRequest(@RequestParam(value = "captcha") String captcha) {
         if (null == captcha || captcha.isEmpty()) {
             throw ResultException.badRequest("captcha required");
         }
@@ -378,9 +375,9 @@ public class AuthController {
 
     @ApiOperation(value = "发送手机验证码", notes = "根据用户手机号发送随机验证码，用于后续登录")
     @PostMapping("/send-smscode")
-    public Result<?> performSMSCode(@RequestParam(value = "cellphone", required = false) String cellphone,
-                                    @RequestParam(value = "captcha", required = false) String captcha,
-                                    @RequestBody(required = false) Map<String, String> params) {
+    public Result<String> performSMSCode(@RequestParam(value = "cellphone", required = false) String cellphone,
+                                         @RequestParam(value = "captcha", required = false) String captcha,
+                                         @RequestBody(required = false) Map<String, String> params) {
         if (null == smsService) {
             throw ResultException.notImplemented("SMS service is unavailable.");
         }
@@ -435,14 +432,14 @@ public class AuthController {
 
     @ApiOperation(value = "用户注册", notes = "注册一个新用户接口")
     @PostMapping("/register")
-    public Result<?> registerUser(
+    public Result<UserInfo> registerUser(
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "password", required = false) String password,
             @RequestParam(value = "captcha", required = false) String captcha,
             @RequestParam(value = "verifier", required = false) String verifier,
             @RequestBody(required = false) Map<String, Object> params) throws ResultException {
         Assert.isTrue(authConfig.isRegisterAllowed(), ResultException.forbidden("self register is not allowed"));
-        Assert.notEmpty(params, ResultException.forbidden("invalid empty request body"));
+//        Assert.notEmpty(params, ResultException.forbidden("invalid empty request body"));
         if (authConfig.isRegisterCaptchaRequired()) {
             Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
             validateCaptcha(captcha, new ResultException(AuthCode.INCORRECT_CAPTCHA, "Incorrect captcha"));
@@ -453,15 +450,15 @@ public class AuthController {
         }
         String[] perms = null;
         String[] roles = null;
-        Short status = 0;
+        short status = 0;
         if (Validator.notEmpty(params)) {
             username = params.getOrDefault("username", username).toString();
             password = params.getOrDefault("password", password).toString();
+            params.remove("username");
+            params.remove("password");
         }
         Assert.notEmpty(username, ResultException.forbidden("invalid empty username"));
         Assert.notEmpty(password, ResultException.forbidden("invalid empty password"));
-        params.remove("username");
-        params.remove("password");
         if (userRegisterHook != null) {
             if (!userRegisterHook.preRegister(username, password, params, UserRegisterHook.OPEN)) {
                 throw ResultException.forbidden("not allowed to register user");
@@ -477,20 +474,26 @@ public class AuthController {
 
         Serializable userId = quickAuthService.createUserInfo(username, password, status, perms, roles, params);
         Assert.notNull(userId, ResultException.serviceUnavailable("create user failed"));
-        Map<String, Object> ret = new LinkedHashMap<>();
-        ret.put("username", username);
-        ret.put("userId", userId);
-        return Result.data(ret).success();
+        UserInfo userInfo = new UserInfo(userId, username, "", "", "");
+        if (Validator.notEmpty(params)) {
+            if (params.containsKey("email")) {
+                userInfo.setEmail(params.get("email").toString());
+            }
+            if (params.containsKey("cellphone")) {
+                userInfo.setCellphone(params.get("cellphone").toString());
+            }
+        }
+        return Result.data(userInfo).success();
     }
 
     @ApiOperation(value = "重置密码", notes = "重置用户密码")
     @PostMapping("/reset-password")
     @RequiresAuthentication
-    public Result<?> resetPassword(@RequestParam(value = "verifier", required = true) String verifier,
-                                   @RequestParam(value = "newPassword1", required = false) String newPassword1,
-                                   @RequestParam(value = "newPassword2", required = false) String newPassword2,
-                                   @RequestBody(required = false) Map<String, String> params,
-                                   @SessionUser String username) throws ResultException {
+    public Result<String> resetPassword(@RequestParam(value = "verifier", required = true) String verifier,
+                                        @RequestParam(value = "newPassword1", required = false) String newPassword1,
+                                        @RequestParam(value = "newPassword2", required = false) String newPassword2,
+                                        @RequestBody(required = false) Map<String, String> params,
+                                        @SessionUser String username) throws ResultException {
         if (Validator.notEmpty(params)) {
             verifier = params.getOrDefault("verifier", "");
             newPassword1 = params.getOrDefault("newPassword1", "");
@@ -518,13 +521,13 @@ public class AuthController {
     @ApiOperation(value = "更改密码", notes = "更改用户密码")
     @PostMapping("/change-password")
     @RequiresAuthentication
-    public Result<?> changePassword(@RequestParam(value = "oldPassword", required = false) String oldPassword,
-                                    @RequestParam(value = "newPassword1", required = false) String newPassword1,
-                                    @RequestParam(value = "newPassword2", required = false) String newPassword2,
-                                    @RequestParam(value = "salt", required = false) String salt,
-                                    @RequestParam(value = "algorithm", required = false) String algorithm,
-                                    @RequestBody(required = false) Map<String, String> params,
-                                    @SessionUser String username) throws ResultException {
+    public Result<String> changePassword(@RequestParam(value = "oldPassword", required = false) String oldPassword,
+                                         @RequestParam(value = "newPassword1", required = false) String newPassword1,
+                                         @RequestParam(value = "newPassword2", required = false) String newPassword2,
+                                         @RequestParam(value = "salt", required = false) String salt,
+                                         @RequestParam(value = "algorithm", required = false) String algorithm,
+                                         @RequestBody(required = false) Map<String, String> params,
+                                         @SessionUser String username) throws ResultException {
         if (Validator.notEmpty(params)) {
             oldPassword = params.getOrDefault("oldPassword", "");
             newPassword1 = params.getOrDefault("newPassword1", "");
