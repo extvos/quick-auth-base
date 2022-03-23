@@ -6,6 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.RememberMeAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,7 @@ import java.util.Date;
 /**
  * @author Mingcai SHEN
  */
-public class QuickToken implements AuthenticationToken, Serializable {
+public class QuickToken implements RememberMeAuthenticationToken, Serializable {
     private String username;
     private String password;
     private String salt;
@@ -180,6 +181,7 @@ public class QuickToken implements AuthenticationToken, Serializable {
         this.algorithm = algorithm;
     }
 
+    @Override
     public boolean isRememberMe() {
         return rememberMe;
     }

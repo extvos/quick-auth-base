@@ -18,6 +18,9 @@ public class LoginResult {
     private Boolean redirect;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Boolean remembered;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private UserInfo userInfo;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -91,5 +94,13 @@ public class LoginResult {
 
     public void setError(String error) {
         this.error = error;
+    }
+
+    public Boolean getRemembered() {
+        return remembered;
+    }
+
+    public void setRemembered(Boolean remembered) {
+        this.remembered = remembered;
     }
 }

@@ -11,7 +11,9 @@ import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSource
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition;
 import org.apache.shiro.spring.web.config.ShiroFilterChainDefinition;
+import org.apache.shiro.web.mgt.CookieRememberMeManager;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+import org.apache.shiro.web.servlet.SimpleCookie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,15 +90,15 @@ public class ShiroConfig {
         }
     }
 
-//    @Bean
-//    public CookieRememberMeManager cookieRememberMeManager() {
-//        CookieRememberMeManager cookieRememberMeManager = new CookieRememberMeManager();
-//        SimpleCookie simpleCookie = new SimpleCookie("rememberMe");
-//        simpleCookie.setMaxAge(baseAuthConfig.getMaxAge());
-//        cookieRememberMeManager.setCookie(simpleCookie);
-//        cookieRememberMeManager.setCipherKey(baseAuthConfig.getSecretAsCypher());
-//        return cookieRememberMeManager;
-//    }
+    @Bean
+    public CookieRememberMeManager cookieRememberMeManager() {
+        CookieRememberMeManager cookieRememberMeManager = new CookieRememberMeManager();
+        SimpleCookie simpleCookie = new SimpleCookie("rememberMe");
+        simpleCookie.setMaxAge(baseAuthConfig.getMaxAge());
+        cookieRememberMeManager.setCookie(simpleCookie);
+        cookieRememberMeManager.setCipherKey(baseAuthConfig.getSecretAsCypher());
+        return cookieRememberMeManager;
+    }
 
     /**
      * 权限管理，配置主要是Realm的管理认证
@@ -109,7 +111,7 @@ public class ShiroConfig {
         securityManager.setCacheManager(getCacheManager());
         securityManager.setRealm(quickRealm(getCacheManager()));
         securityManager.setSessionManager(sessionManager());
-//        securityManager.setRememberMeManager(cookieRememberMeManager());
+        securityManager.setRememberMeManager(cookieRememberMeManager());
         return securityManager;
     }
 
@@ -137,7 +139,7 @@ public class ShiroConfig {
 
         // Set Filter
         Map<String, Filter> filters = new LinkedHashMap<>();
-        filters.put("auth", new QuickFilter());
+        filters.put("authc", new QuickFilter());
         shiroFilterFactoryBean.setFilters(filters);
 
         //登录

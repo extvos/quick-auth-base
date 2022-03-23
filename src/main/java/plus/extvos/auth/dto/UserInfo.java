@@ -62,6 +62,10 @@ public class UserInfo implements Serializable {
      */
     private Map<String, Object> extraInfo;
 
+    public UserInfo() {
+
+    }
+
     public UserInfo(Serializable id, String username, String password, String cellphone, String email) {
         this.userId = id;
         this.username = username;

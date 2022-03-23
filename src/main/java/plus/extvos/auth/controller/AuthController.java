@@ -6,6 +6,7 @@ import io.swagger.annotations.ApiOperation;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresUser;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.StringUtils;
@@ -144,7 +145,7 @@ public class AuthController {
             salt = params.getOrDefault("salt", salt);
             algorithm = params.getOrDefault("algorithm", algorithm);
             captcha = params.getOrDefault("captcha", captcha);
-            rememberMe = params.getOrDefault("rememberMe", String.valueOf(rememberMe)).toLowerCase().equals("true");
+            rememberMe = params.getOrDefault("rememberMe", String.valueOf(rememberMe)).equalsIgnoreCase("true");
             redirectUri = params.getOrDefault("redirectUri", redirectUri);
         }
         // Get subject and session
@@ -221,7 +222,6 @@ public class AuthController {
             }
         }
         // Perform the login
-        UsernamePasswordToken upToken = new UsernamePasswordToken();
         QuickToken token = new QuickToken(username, password, algorithm, salt);
         if (null != rememberMe && rememberMe) {
             token.setRememberMe(true);
@@ -240,6 +240,7 @@ public class AuthController {
             } else {
                 userInfo.setPassword("*******");
                 LoginResult lr = new LoginResult(token.getUsername(), sess.getId(), null, null, userInfo);
+                lr.setRemembered(token.isRememberMe());
                 if (StringUtils.hasLength(redirectUri)) {
                     lr.setRedirectUri(redirectUri);
                     lr.setRedirect(true);
@@ -566,7 +567,7 @@ public class AuthController {
 
     @ApiOperation(value = "用户信息", notes = "获取当前会话用户信息")
     @GetMapping("/profile")
-    @RequiresAuthentication
+    @RequiresUser
     public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws ResultException {
         Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
         userInfo.setPassword("******");

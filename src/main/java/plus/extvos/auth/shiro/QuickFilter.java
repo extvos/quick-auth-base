@@ -9,8 +9,8 @@ import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import plus.extvos.auth.config.QuickAuthConfig;
-import plus.extvos.common.ResultCode;
 import plus.extvos.common.Result;
+import plus.extvos.common.ResultCode;
 import plus.extvos.common.utils.SpringContextHolder;
 
 import javax.servlet.ServletRequest;
@@ -31,7 +31,9 @@ public class QuickFilter extends AuthenticatingFilter {
 //        Subject subject = SecurityUtils.getSubject();
 //        Session session = subject.getSession();
 //        log.debug("isAccessAllowed:> session: {}", session != null ? session.getId() : "empty");
-        return super.isAccessAllowed(request, response, mappedValue);
+        Subject subject = this.getSubject(request, response);
+        return subject.isRemembered() || subject.isAuthenticated();
+//        return super.isAccessAllowed(request, response, mappedValue);
     }
 
     @Override
@@ -40,7 +42,7 @@ public class QuickFilter extends AuthenticatingFilter {
         Subject subject = SecurityUtils.getSubject();
         Session session = subject.getSession();
         log.debug("onAccessDenied:> session: {}", session != null ? session.getId() : "empty");
-        if (subject.isAuthenticated()) {
+        if (subject.isAuthenticated() || subject.isRemembered()) {
             return true;
         }
         QuickAuthConfig cfg = SpringContextHolder.getBean(QuickAuthConfig.class);
