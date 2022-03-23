@@ -28,9 +28,9 @@ public class QuickFilter extends AuthenticatingFilter {
     @Override
     protected boolean isAccessAllowed(ServletRequest request, ServletResponse response, Object mappedValue) {
         log.debug("isAccessAllowed");
-        Subject subject = SecurityUtils.getSubject();
-        Session session = subject.getSession();
-        log.debug("isAccessAllowed:> session: {}", session != null ? session.getId() : "empty");
+//        Subject subject = SecurityUtils.getSubject();
+//        Session session = subject.getSession();
+//        log.debug("isAccessAllowed:> session: {}", session != null ? session.getId() : "empty");
         return super.isAccessAllowed(request, response, mappedValue);
     }
 

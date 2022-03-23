@@ -130,6 +130,7 @@ public class AuthController {
             @RequestParam(value = "salt", required = false) String salt,
             @RequestParam(value = "algorithm", required = false) String algorithm,
             @RequestParam(value = "captcha", required = false) String captcha,
+            @RequestParam(value = "rememberMe", required = false) Boolean rememberMe,
             @RequestParam(value = "redirectUri", required = false) String redirectUri,
             @RequestBody(required = false) Map<String, String> params,
             HttpServletResponse response) throws ResultException {
@@ -143,6 +144,7 @@ public class AuthController {
             salt = params.getOrDefault("salt", salt);
             algorithm = params.getOrDefault("algorithm", algorithm);
             captcha = params.getOrDefault("captcha", captcha);
+            rememberMe = params.getOrDefault("rememberMe", String.valueOf(rememberMe)).toLowerCase().equals("true");
             redirectUri = params.getOrDefault("redirectUri", redirectUri);
         }
         // Get subject and session
@@ -219,7 +221,11 @@ public class AuthController {
             }
         }
         // Perform the login
+        UsernamePasswordToken upToken = new UsernamePasswordToken();
         QuickToken token = new QuickToken(username, password, algorithm, salt);
+        if (null != rememberMe && rememberMe) {
+            token.setRememberMe(true);
+        }
         try {
             sub.login(token);
             userInfo = quickAuthService.fillUserInfo(userInfo);

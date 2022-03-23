@@ -26,6 +26,7 @@ public class QuickToken implements AuthenticationToken, Serializable {
     private String[] roles;
     private String[] permissions;
     private boolean signed;
+    private boolean rememberMe;
 
     private static final Logger log = LoggerFactory.getLogger(QuickToken.class);
 
@@ -73,28 +74,28 @@ public class QuickToken implements AuthenticationToken, Serializable {
         cld.add(Calendar.SECOND, (int) expires);
         Date dt = cld.getTime();
         return JWT.create()
-            .withIssuer("quick-auth")
-            .withClaim("username", username)
-            .withClaim("password", password)
-            .withClaim("salt", salt)
-            .withClaim("algorithm", algorithm)
-            .withArrayClaim("roles", roles)
-            .withArrayClaim("permissions", permissions)
-            .withExpiresAt(dt).sign(alg);
+                .withIssuer("quick-auth")
+                .withClaim("username", username)
+                .withClaim("password", password)
+                .withClaim("salt", salt)
+                .withClaim("algorithm", algorithm)
+                .withArrayClaim("roles", roles)
+                .withArrayClaim("permissions", permissions)
+                .withExpiresAt(dt).sign(alg);
     }
 
     public static QuickToken fromJwt(String jwt, String secret) {
         Algorithm alg = Algorithm.HMAC256(secret);
         JWTVerifier verifier = JWT.require(alg)
-            .withIssuer("quick-auth")
-            .build(); //Reusable verifier instance
+                .withIssuer("quick-auth")
+                .build(); //Reusable verifier instance
         try {
             DecodedJWT djwt = verifier.verify(jwt);
             QuickToken qt = new QuickToken(
-                djwt.getClaim("username").asString(),
-                djwt.getClaim("password").asString(),
-                djwt.getClaim("algorithm").asString(),
-                djwt.getClaim("salt").asString()
+                    djwt.getClaim("username").asString(),
+                    djwt.getClaim("password").asString(),
+                    djwt.getClaim("algorithm").asString(),
+                    djwt.getClaim("salt").asString()
             );
             qt.signed = true;
             return qt;
@@ -177,5 +178,13 @@ public class QuickToken implements AuthenticationToken, Serializable {
 
     public void setAlgorithm(String algorithm) {
         this.algorithm = algorithm;
+    }
+
+    public boolean isRememberMe() {
+        return rememberMe;
+    }
+
+    public void setRememberMe(boolean rememberMe) {
+        this.rememberMe = rememberMe;
     }
 }
