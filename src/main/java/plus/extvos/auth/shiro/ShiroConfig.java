@@ -83,11 +83,13 @@ public class ShiroConfig {
      */
     @Bean
     public SessionManager sessionManager() {
+        SessionManager sm;
         if (null == quickSessionDAO) {
-            return new QuickSessionManager();
+            sm = new QuickSessionManager();
         } else {
-            return new QuickSessionManager(quickSessionDAO);
+            sm = new QuickSessionManager(quickSessionDAO);
         }
+        return sm;
     }
 
     @Bean

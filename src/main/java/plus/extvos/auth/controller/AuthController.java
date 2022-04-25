@@ -495,7 +495,6 @@ public class AuthController {
 
     @ApiOperation(value = "重置密码", notes = "重置用户密码")
     @PostMapping("/reset-password")
-    @RequiresAuthentication
     public Result<String> resetPassword(@RequestParam(value = "verifier", required = true) String verifier,
                                         @RequestParam(value = "newPassword1", required = false) String newPassword1,
                                         @RequestParam(value = "newPassword2", required = false) String newPassword2,
