@@ -213,7 +213,7 @@ public class AuthController {
             if (captcha != null && !captcha.isEmpty()) {
 //                String capText = null != sess.getAttribute(CAPTCHA_SESSION_KEY) ? sess.getAttribute(CAPTCHA_SESSION_KEY).toString() : "";
                 if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
-                    log.error("doLogin:> [{}] 验证码错误", username);
+                    log.error("doLogin:> [{},{},{}] 验证码错误", username, captcha, sess.getAttribute(CAPTCHA_SESSION_KEY));
                     sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
                     throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误", failureResult(fn + 1));
                 }
