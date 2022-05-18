@@ -85,9 +85,9 @@ public class ShiroConfig {
     public SessionManager sessionManager() {
         SessionManager sm;
         if (null == quickSessionDAO) {
-            sm = new QuickSessionManager();
+            sm = new QuickSessionManager(baseAuthConfig.getMaxAge() * 1000L);
         } else {
-            sm = new QuickSessionManager(quickSessionDAO);
+            sm = new QuickSessionManager(quickSessionDAO, baseAuthConfig.getMaxAge() * 1000L);
         }
         return sm;
     }

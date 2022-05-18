@@ -32,23 +32,24 @@ public class QuickSessionManager extends DefaultWebSessionManager implements Web
     private static final String REFERENCED_SESSION_ID_SOURCE = "Stateless request";
 
     // Rewriting the constructor
-    public QuickSessionManager() {
+    public QuickSessionManager(long timeout) {
         super();
         this.setDeleteInvalidSessions(true);
+        this.setGlobalSessionTimeout(timeout);
     }
 
-    public QuickSessionManager(SessionDAO sessionDAO) {
+    public QuickSessionManager(SessionDAO sessionDAO, long timeout) {
         super();
         this.sessionDAO = sessionDAO;
+        this.setGlobalSessionTimeout(timeout);
     }
 
     @Override
     protected void onStart(Session session, SessionContext context) {
         super.onStart(session, context);
-
         if (!WebUtils.isHttp(context)) {
             log.debug("SessionContext argument is not HTTP compatible or does not have an HTTP request/response " +
-                "pair. No session ID cookie will be set.");
+                    "pair. No session ID cookie will be set.");
             return;
 
         }
@@ -113,7 +114,7 @@ public class QuickSessionManager extends DefaultWebSessionManager implements Web
             removeSessionId(request, response);
         } else {
             log.debug("SessionKey argument is not HTTP compatible or does not have an HTTP request/response " +
-                "pair. Session ID cookie will not be removed due to stopped session.");
+                    "pair. Session ID cookie will not be removed due to stopped session.");
         }
     }
 
