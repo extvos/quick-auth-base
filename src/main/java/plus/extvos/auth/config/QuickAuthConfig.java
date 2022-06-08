@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "quick.auth.base")
 public class QuickAuthConfig {
     private String secret = "quick";
-    private int maxAge = 25920000;
+    private int maxAge = 2592000;
     private boolean saltRequired = false;
     private boolean captchaRequired = false;
     private boolean autoCaptcha = false;
@@ -19,6 +19,8 @@ public class QuickAuthConfig {
     private boolean registerVerifierRequired = false;
     private boolean phoneRequired = false;
     private int smsCodeLength = 6;
+
+    private short defaultStatus = 0;
 
     public String getSecret() {
         return secret;
@@ -105,5 +107,13 @@ public class QuickAuthConfig {
 
     public void setRegisterVerifierRequired(boolean registerVerifierRequired) {
         this.registerVerifierRequired = registerVerifierRequired;
+    }
+
+    public short getDefaultStatus() {
+        return defaultStatus;
+    }
+
+    public void setDefaultStatus(short defaultStatus) {
+        this.defaultStatus = defaultStatus;
     }
 }
