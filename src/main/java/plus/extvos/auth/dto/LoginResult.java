@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.io.Serializable;
 
-public class LoginResult {
+public class LoginResult  implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String username;
 

@@ -1,9 +1,11 @@
 package plus.extvos.auth.dto;
 
+import java.io.Serializable;
+
 /**
  * @author Mingcai SHEN
  */
-public class RoleInfo {
+public class RoleInfo  implements Serializable {
     private String code;
     private String desc;
 

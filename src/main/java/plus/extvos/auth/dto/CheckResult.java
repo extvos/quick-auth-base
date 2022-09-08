@@ -2,8 +2,10 @@ package plus.extvos.auth.dto;
 
 import io.swagger.annotations.ApiModel;
 
+import java.io.Serializable;
+
 @ApiModel("检查结果")
-public class CheckResult {
+public class CheckResult  implements Serializable {
     private String checkBy;
     private Boolean exists;
 
