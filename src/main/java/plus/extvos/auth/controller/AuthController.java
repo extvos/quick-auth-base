@@ -570,6 +570,11 @@ public class AuthController {
     public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws ResultException {
         Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
         userInfo.setPassword("******");
+        Subject subject = SecurityUtils.getSubject();
+        Session session = subject.getSession(false);
+        if (null != session) {
+            userInfo.setCode(session.getId());
+        }
         return Result.data(userInfo).success();
     }
 

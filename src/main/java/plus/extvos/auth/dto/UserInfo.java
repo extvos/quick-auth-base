@@ -58,6 +58,11 @@ public class UserInfo implements Serializable {
     private String openId;
 
     /**
+     * Current session code
+     */
+    private Serializable code;
+
+    /**
      * Extra information of open account connected to provider
      */
     private Map<String, Object> extraInfo;
@@ -153,6 +158,14 @@ public class UserInfo implements Serializable {
 
     public void setOpenId(String openId) {
         this.openId = openId;
+    }
+
+    public Serializable getCode() {
+        return code;
+    }
+
+    public void setCode(Serializable code) {
+        this.code = code;
     }
 
     public Map<String, Object> getExtraInfo() {
