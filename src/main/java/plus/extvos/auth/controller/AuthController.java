@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import plus.extvos.auth.annotation.SessionUser;
+import plus.extvos.auth.config.AuthBaseConstant;
 import plus.extvos.auth.config.QuickAuthConfig;
 import plus.extvos.auth.dto.CheckResult;
 import plus.extvos.auth.dto.LoginResult;
@@ -29,6 +30,7 @@ import plus.extvos.auth.service.UserRegisterHook;
 import plus.extvos.auth.shiro.QuickToken;
 import plus.extvos.auth.utils.CredentialGenerator;
 import plus.extvos.auth.utils.CredentialHash;
+import plus.extvos.auth.utils.SessionUtil;
 import plus.extvos.common.Assert;
 import plus.extvos.common.Result;
 import plus.extvos.common.ResultCode;
@@ -55,9 +57,6 @@ import java.util.Map;
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
-    private static final String CAPTCHA_SESSION_KEY = "CAPTCHA";
-    private static final String VERIFIER_SESSION_KEY = "VERIFIER";
-    private static final String FAILURE_SESSION_COUNT = "FAILURE_COUNT";
 
     @Autowired
     private Producer captchaProducer;
@@ -84,40 +83,6 @@ public class AuthController {
             lr.setError(errs[0]);
         }
         return lr;
-    }
-
-    private boolean validateCaptcha(String captcha, ResultException... e) throws ResultException {
-        // Get subject and session
-        Subject sub = SecurityUtils.getSubject();
-        // Need to create session here, when it's first access.
-        Session sess = sub.getSession(true);
-        if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
-            if (e.length > 0) {
-                throw e[0];
-            } else {
-                return false;
-            }
-        }
-        // Remove it for avoid second use.
-        sess.removeAttribute(CAPTCHA_SESSION_KEY);
-        return true;
-    }
-
-    private boolean validateVerifier(String verifier, ResultException... e) throws ResultException {
-        // Get subject and session
-        Subject sub = SecurityUtils.getSubject();
-        // Need to create session here, when it's first access.
-        Session sess = sub.getSession(true);
-        if (!verifier.equals(sess.getAttribute(VERIFIER_SESSION_KEY))) {
-            if (e.length > 0) {
-                throw e[0];
-            } else {
-                return false;
-            }
-        }
-        // Remove it for avoid second use.
-        sess.removeAttribute(VERIFIER_SESSION_KEY);
-        return true;
     }
 
     @ApiOperation("登录账户")
@@ -152,7 +117,7 @@ public class AuthController {
         Subject sub = SecurityUtils.getSubject();
         // Need to create session here, when it's first access.
         Session sess = sub.getSession(true);
-        Integer fn = (Integer) sess.getAttribute(FAILURE_SESSION_COUNT);
+        Integer fn = (Integer) sess.getAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT);
         if (null == fn) {
             fn = 0;
         }
@@ -178,7 +143,7 @@ public class AuthController {
             throw ResultException.badRequest("username of email or cellphone required");
         }
         if (null == userInfo) {
-            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             throw ResultException.notFound(via + " not exists");
         }
         log.debug("Via " + via + " > " + userInfo.getUsername());
@@ -186,14 +151,14 @@ public class AuthController {
         // Performing sms login first
         if ((Validator.notEmpty(cellphone) || Validator.notEmpty(email)) && Validator.notEmpty(verifier)) {
 //            String smsText = sess.getAttribute(VERIFIER_SESSION_KEY).toString();
-            if (!verifier.equals(sess.getAttribute(VERIFIER_SESSION_KEY))) {
+            if (!verifier.equals(sess.getAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY))) {
                 log.error("doLogin:> [{}:{}] 验证码错误", cellphone, email);
                 throw new ResultException(AuthCode.INCORRECT_VERIFIER, "验证码错误", failureResult(fn + 1));
             } else {
                 password = userInfo.getPassword();
             }
             // Remove it for avoid second use.
-            sess.removeAttribute(VERIFIER_SESSION_KEY);
+            sess.removeAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY);
         } else {
             try {
 //                Assert.notEmpty(username, new ResultException(AuthCode.USERNAME_REQUIRED, "Username required!", failureResult(fn + 1)));
@@ -206,19 +171,19 @@ public class AuthController {
                     Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!", failureResult(fn + 1)));
                 }
             } catch (ResultException e) {
-                sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+                sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
                 throw e;
             }
 
             if (captcha != null && !captcha.isEmpty()) {
 //                String capText = null != sess.getAttribute(CAPTCHA_SESSION_KEY) ? sess.getAttribute(CAPTCHA_SESSION_KEY).toString() : "";
-                if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
-                    log.error("doLogin:> [{},{},{}] 验证码错误", username, captcha, sess.getAttribute(CAPTCHA_SESSION_KEY));
-                    sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+                if (!captcha.equals(sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY))) {
+                    log.error("doLogin:> [{},{},{}] 验证码错误", username, captcha, sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY));
+                    sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
                     throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误", failureResult(fn + 1));
                 }
                 // Remove it for avoid second use.
-                sess.removeAttribute(CAPTCHA_SESSION_KEY);
+                sess.removeAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY);
             }
         }
         // Perform the login
@@ -247,42 +212,42 @@ public class AuthController {
                 } else {
                     lr.setRedirect(false);
                 }
-                sess.removeAttribute(FAILURE_SESSION_COUNT);
+                sess.removeAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT);
                 return Result.data(lr).success();
             }
         } catch (UnknownAccountException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,用户不存在", username);
             token.clear();
-            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
 //            return Result.data(failureResult(fn + 1)).setMsg("").failure();
             return Result.data(failureResult(fn + 1)).setMsg("用户不存在").failure(AuthCode.ACCOUNT_NOT_FOUND);
         } catch (LockedAccountException lae) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户已锁定", username);
             token.clear();
-            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             return Result.data(failureResult(fn + 1)).setMsg("账户已锁定").failure(AuthCode.ACCOUNT_LOCKED);
         } catch (DisabledAccountException lae) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户未启用", username);
             token.clear();
-            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             return Result.data(failureResult(fn + 1)).setMsg("账户未启用").failure(AuthCode.ACCOUNT_DISABLED);
         } catch (ExcessiveAttemptsException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,错误次数过多", username);
             token.clear();
-            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             return Result.data(failureResult(fn + 1)).setMsg("错误次数过").failure(AuthCode.TOO_MAY_RETRIES);
         } catch (CredentialsException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,密码或用户名错误", username);
             token.clear();
-            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             return Result.data(failureResult(fn + 1)).setMsg("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
         } catch (AuthenticationException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,堆栈轨迹如下", username, e);
             token.clear();
-            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             return Result.data(failureResult(fn + 1)).setMsg("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
         } catch (Exception e) {
-            sess.setAttribute(FAILURE_SESSION_COUNT, fn + 1);
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             return Result.data(failureResult(fn + 1)).setMsg(e.getMessage()).failure(ResultCode.INTERNAL_SERVER_ERROR);
 //            return Result.message(e.getMessage()).with(failureResult(fn + 1)).failure(ResultCode.INTERNAL_SERVER_ERROR);
         }
@@ -319,7 +284,7 @@ public class AuthController {
         Session session = subject.getSession(true);
         // 生成验证码文本
         String capText = captchaProducer.createText();
-        session.setAttribute(CAPTCHA_SESSION_KEY, capText);
+        session.setAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY, capText);
         log.debug("generateCaptchaImage:> capText = {}", capText);
         // 利用生成的字符串构建图片
         BufferedImage bi = captchaProducer.createImage(capText);
@@ -347,7 +312,7 @@ public class AuthController {
         long start = System.currentTimeMillis();
         String capText = captchaProducer.createText();
         log.debug(capText);
-        session.setAttribute(CAPTCHA_SESSION_KEY, capText);
+        session.setAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY, capText);
         // 利用生成的字符串构建图片
         BufferedImage bi = captchaProducer.createImage(capText);
         ServletOutputStream out = response.getOutputStream();
@@ -371,12 +336,12 @@ public class AuthController {
         if (null == sess) {
             throw ResultException.badRequest("session not exists");
         }
-        if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
+        if (!captcha.equals(sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY))) {
             log.error("performSMSCode:> [{}] 验证码错误", captcha);
             throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
         }
         // Remove it for avoid second use.
-        sess.removeAttribute(CAPTCHA_SESSION_KEY);
+        sess.removeAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY);
         return Result.data("OK").success();
     }
 
@@ -401,15 +366,15 @@ public class AuthController {
         Subject sub = SecurityUtils.getSubject();
         Session sess = sub.getSession();
         if (captcha != null && !captcha.isEmpty()) {
-            if (!captcha.equals(sess.getAttribute(CAPTCHA_SESSION_KEY))) {
+            if (!captcha.equals(sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY))) {
                 log.error("performSMSCode:> [{}] 验证码错误", cellphone);
                 throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误");
             }
             // Remove it for avoid second use.
-            sess.removeAttribute(CAPTCHA_SESSION_KEY);
+            sess.removeAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY);
         }
         String code = CredentialGenerator.getDecimalDigits(authConfig.getSmsCodeLength());
-        sess.setAttribute(VERIFIER_SESSION_KEY, code);
+        sess.setAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY, code);
         if (smsService.sendSecretCode(cellphone, code)) {
             return Result.data("OK").success();
         } else {
@@ -428,12 +393,12 @@ public class AuthController {
         if (null == sess) {
             throw ResultException.badRequest("session not exists");
         }
-        if (!code.equals(sess.getAttribute(VERIFIER_SESSION_KEY))) {
+        if (!code.equals(sess.getAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY))) {
             log.error("validateSMSCode:> [{}] 验证码错误", code);
             throw new ResultException(AuthCode.INCORRECT_VERIFIER, "验证码错误");
         }
         // Remove it for avoid second use.
-        sess.removeAttribute(VERIFIER_SESSION_KEY);
+        sess.removeAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY);
         return Result.data("OK").success();
     }
 
@@ -449,11 +414,11 @@ public class AuthController {
 //        Assert.notEmpty(params, ResultException.forbidden("invalid empty request body"));
         if (authConfig.isRegisterCaptchaRequired()) {
             Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!"));
-            validateCaptcha(captcha, new ResultException(AuthCode.INCORRECT_CAPTCHA, "Incorrect captcha"));
+            SessionUtil.validateCaptcha(captcha, new ResultException(AuthCode.INCORRECT_CAPTCHA, "Incorrect captcha"));
         }
         if (authConfig.isRegisterVerifierRequired()) {
             Assert.notEmpty(verifier, new ResultException(AuthCode.VERIFIER_REQUIRED, "Verifier required!"));
-            validateVerifier(verifier, new ResultException(AuthCode.INCORRECT_VERIFIER, "Incorrect verifier"));
+            SessionUtil.validateVerifier(verifier, new ResultException(AuthCode.INCORRECT_VERIFIER, "Incorrect verifier"));
         }
         String[] perms = null;
         String[] roles = null;
@@ -519,7 +484,7 @@ public class AuthController {
         if (null == session) {
             throw ResultException.forbidden("not in a session");
         }
-        Assert.equals(verifier, session.getAttribute(VERIFIER_SESSION_KEY), ResultException.forbidden("invalid verifier"));
+        Assert.equals(verifier, session.getAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY), ResultException.forbidden("invalid verifier"));
         quickAuthService.updateUserInfo(username, newPassword1, null, null, null);
         return Result.data("OK").success();
     }
