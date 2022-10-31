@@ -438,6 +438,10 @@ public class AuthController {
             perms = userRegisterHook.defaultPermissions(UserRegisterHook.OPEN);
             roles = userRegisterHook.defaultRoles(UserRegisterHook.OPEN);
             status = userRegisterHook.defaultStatus(UserRegisterHook.OPEN);
+        } else {
+            status = authConfig.getDefaultStatus();
+            perms = authConfig.getDefaultPermissions().split(",");
+            roles = authConfig.getDefaultRoles().split(",");
         }
         UserInfo u = quickAuthService.getUserByName(username, false);
         if (u != null) {
