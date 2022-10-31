@@ -544,7 +544,7 @@ public class AuthController {
     }
 
     @PostMapping("/check-username")
-    @ApiOperation(value = "检查户名", notes = "按用户名检查户名是否已注册")
+    @ApiOperation(value = "检查用户名", notes = "按用户名检查是否已注册")
     public Result<CheckResult> checkUsername(@RequestParam("username") String username) throws ResultException {
         UserInfo m = quickAuthService.getUserByName(username, false);
         if (null != m) {
@@ -555,7 +555,7 @@ public class AuthController {
     }
 
     @PostMapping("/check-email")
-    @ApiOperation(value = "检查户名", notes = "按邮件检查户名是否已注册")
+    @ApiOperation(value = "检查邮件", notes = "按邮件检查用户是否已注册")
     public Result<CheckResult> checkEmail(@RequestParam("email") String email) throws ResultException {
         UserInfo m = quickAuthService.getUserByEmail(email, false);
         if (null != m) {
@@ -566,7 +566,7 @@ public class AuthController {
     }
 
     @PostMapping("/check-cellphone")
-    @ApiOperation(value = "检查户名", notes = "按电话检查户名是否已注册")
+    @ApiOperation(value = "检查电话", notes = "按电话检查用户是否已注册")
     public Result<CheckResult> checkCellphone(@RequestParam("cellphone") String cellphone) throws ResultException {
         UserInfo m = quickAuthService.getUserByPhone(cellphone, false);
         if (null != m) {

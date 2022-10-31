@@ -22,6 +22,10 @@ public class QuickAuthConfig {
 
     private short defaultStatus = 0;
 
+    private String defaultRoles = "";
+
+    private String defaultPermissions = "";
+
     public String getSecret() {
         return secret;
     }
@@ -115,5 +119,21 @@ public class QuickAuthConfig {
 
     public void setDefaultStatus(short defaultStatus) {
         this.defaultStatus = defaultStatus;
+    }
+
+    public String getDefaultRoles() {
+        return defaultRoles;
+    }
+
+    public void setDefaultRoles(String defaultRoles) {
+        this.defaultRoles = defaultRoles;
+    }
+
+    public String getDefaultPermissions() {
+        return defaultPermissions;
+    }
+
+    public void setDefaultPermissions(String defaultPermissions) {
+        this.defaultPermissions = defaultPermissions;
     }
 }
