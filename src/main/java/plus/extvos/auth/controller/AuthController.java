@@ -4,12 +4,10 @@ import com.google.code.kaptcha.Producer;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresUser;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
-import org.apache.shiro.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,17 +21,12 @@ import plus.extvos.auth.dto.CheckResult;
 import plus.extvos.auth.dto.LoginResult;
 import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.auth.enums.AuthCode;
-import plus.extvos.auth.service.QuickAuthCallback;
-import plus.extvos.auth.service.QuickAuthService;
-import plus.extvos.auth.service.SMSService;
-import plus.extvos.auth.service.UserRegisterHook;
-import plus.extvos.auth.shiro.QuickToken;
+import plus.extvos.auth.service.*;
 import plus.extvos.auth.utils.CredentialGenerator;
 import plus.extvos.auth.utils.CredentialHash;
 import plus.extvos.auth.utils.SessionUtil;
 import plus.extvos.common.Assert;
 import plus.extvos.common.Result;
-import plus.extvos.common.ResultCode;
 import plus.extvos.common.Validator;
 import plus.extvos.common.exception.ResultException;
 
@@ -76,14 +69,8 @@ public class AuthController {
     @Autowired
     private QuickAuthConfig authConfig;
 
-    private LoginResult failureResult(int failures, String... errs) {
-        LoginResult lr = new LoginResult();
-        lr.setFailures(failures);
-        if (errs.length > 0) {
-            lr.setError(errs[0]);
-        }
-        return lr;
-    }
+    @Autowired
+    private QuickAuthentication quickAuthentication;
 
     @ApiOperation("登录账户")
     @PostMapping("/login")
@@ -99,7 +86,7 @@ public class AuthController {
             @RequestParam(value = "rememberMe", required = false) Boolean rememberMe,
             @RequestParam(value = "redirectUri", required = false) String redirectUri,
             @RequestBody(required = false) Map<String, String> params,
-            HttpServletResponse response) throws ResultException {
+            HttpServletResponse response) throws ResultException, IOException {
         /* Support client to login with FORM or in JSON format */
         if (params != null && !params.isEmpty()) {
             username = params.getOrDefault("username", username);
@@ -113,160 +100,44 @@ public class AuthController {
             rememberMe = params.getOrDefault("rememberMe", String.valueOf(rememberMe)).equalsIgnoreCase("true");
             redirectUri = params.getOrDefault("redirectUri", redirectUri);
         }
-        // Get subject and session
-        Subject sub = SecurityUtils.getSubject();
-        // Need to create session here, when it's first access.
-        Session sess = sub.getSession(true);
-        Integer fn = (Integer) sess.getAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT);
-        if (null == fn) {
-            fn = 0;
-        }
+
+        LoginResult result = null;
         boolean isCaptchaRequired = authConfig.isCaptchaRequired();
-        log.info("doLogin:> failures: {}", fn);
-        // If isAutoCaptcha and current session was failed more than once, we force to check captcha.
-        // This is by session, we may need to support by source IP in the future.
-        if (fn > 0 && authConfig.isAutoCaptcha()) {
-            isCaptchaRequired = true;
-        }
-        UserInfo userInfo = null;
-        String via = "";
+        quickAuthentication.validateCaptcha(captcha, isCaptchaRequired);
+
         if (Validator.notEmpty(username)) {
-            userInfo = quickAuthService.getUserByName(username, true);
-            via = "username(" + username + ")";
+            result = quickAuthentication.loginByUsername(username, password, algorithm, salt, rememberMe);
         } else if (Validator.notEmpty(email)) {
-            userInfo = quickAuthService.getUserByEmail(email, true);
-            via = "email(" + email + ")";
+            if (Validator.notEmpty(verifier)) {
+                result = quickAuthentication.loginByEmail(email, verifier, rememberMe);
+            } else {
+                result = quickAuthentication.loginByEmail(email, password, algorithm, salt, rememberMe);
+            }
+
         } else if (Validator.notEmpty(cellphone)) {
-            userInfo = quickAuthService.getUserByPhone(cellphone, true);
-            via = "cellphone(" + cellphone + ")";
+            if (Validator.notEmpty(verifier)) {
+                result = quickAuthentication.loginByCellphone(cellphone, verifier, rememberMe);
+            } else {
+                result = quickAuthentication.loginByCellphone(cellphone, password, algorithm, salt, rememberMe);
+            }
+
         } else {
             throw ResultException.badRequest("username of email or cellphone required");
         }
-        if (null == userInfo) {
-            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            throw ResultException.notFound(via + " not exists");
-        }
-        log.debug("Via " + via + " > " + userInfo.getUsername());
-        username = userInfo.getUsername();
-        // Performing sms login first
-        if ((Validator.notEmpty(cellphone) || Validator.notEmpty(email)) && Validator.notEmpty(verifier)) {
-//            String smsText = sess.getAttribute(VERIFIER_SESSION_KEY).toString();
-            if (!verifier.equals(sess.getAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY))) {
-                log.error("doLogin:> [{}:{}] 验证码错误", cellphone, email);
-                throw new ResultException(AuthCode.INCORRECT_VERIFIER, "验证码错误", failureResult(fn + 1));
-            } else {
-                password = userInfo.getPassword();
-            }
-            // Remove it for avoid second use.
-            sess.removeAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY);
-        } else {
-            try {
-//                Assert.notEmpty(username, new ResultException(AuthCode.USERNAME_REQUIRED, "Username required!", failureResult(fn + 1)));
-                Assert.notEmpty(password, new ResultException(AuthCode.PASSWORD_REQUIRED, "Password required!", failureResult(fn + 1)));
-                log.info("/auth/login: [{},{},{}]", username, password, redirectUri);
-                if (authConfig.isSaltRequired()) {
-                    Assert.notEmpty(salt, new ResultException(AuthCode.SALT_REQUIRED, "Salt required!", failureResult(fn + 1)));
-                }
-                if (isCaptchaRequired) {
-                    Assert.notEmpty(captcha, new ResultException(AuthCode.CAPTCHA_REQUIRED, "Captcha required!", failureResult(fn + 1)));
-                }
-            } catch (ResultException e) {
-                sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-                throw e;
-            }
 
-            if (captcha != null && !captcha.isEmpty()) {
-//                String capText = null != sess.getAttribute(CAPTCHA_SESSION_KEY) ? sess.getAttribute(CAPTCHA_SESSION_KEY).toString() : "";
-                if (!captcha.equals(sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY))) {
-                    log.error("doLogin:> [{},{},{}] 验证码错误", username, captcha, sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY));
-                    sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-                    throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "验证码错误", failureResult(fn + 1));
-                }
-                // Remove it for avoid second use.
-                sess.removeAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY);
-            }
-        }
-        // Perform the login
-        QuickToken token = new QuickToken(username, password, algorithm, salt);
-        if (null != rememberMe && rememberMe) {
-            token.setRememberMe(true);
-        }
-        try {
-            sub.login(token);
-            userInfo = quickAuthService.fillUserInfo(userInfo);
-            if (null != quickAuthCallback) {
-                userInfo = quickAuthCallback.onLoggedIn(userInfo);
-            }
-            sess.setAttribute(UserInfo.USER_INFO_KEY, userInfo);
-            if (redirectUri != null && !redirectUri.isEmpty()) {
-                redirectUri += "?code=" + sess.getId();
-                response.sendRedirect(redirectUri);
-                return null;
-            } else {
-                userInfo.setPassword("*******");
-                LoginResult lr = new LoginResult(token.getUsername(), sess.getId(), null, null, userInfo);
-                lr.setRemembered(token.isRememberMe());
-                if (StringUtils.hasLength(redirectUri)) {
-                    lr.setRedirectUri(redirectUri);
-                    lr.setRedirect(true);
-                } else {
-                    lr.setRedirect(false);
-                }
-                sess.removeAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT);
-                return Result.data(lr).success();
-            }
-        } catch (UnknownAccountException e) {
-            log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,用户不存在", username);
-            token.clear();
-            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-//            return Result.data(failureResult(fn + 1)).setMsg("").failure();
-            return Result.data(failureResult(fn + 1)).setMsg("用户不存在").failure(AuthCode.ACCOUNT_NOT_FOUND);
-        } catch (LockedAccountException lae) {
-            log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户已锁定", username);
-            token.clear();
-            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return Result.data(failureResult(fn + 1)).setMsg("账户已锁定").failure(AuthCode.ACCOUNT_LOCKED);
-        } catch (DisabledAccountException lae) {
-            log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户未启用", username);
-            token.clear();
-            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return Result.data(failureResult(fn + 1)).setMsg("账户未启用").failure(AuthCode.ACCOUNT_DISABLED);
-        } catch (ExcessiveAttemptsException e) {
-            log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,错误次数过多", username);
-            token.clear();
-            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return Result.data(failureResult(fn + 1)).setMsg("错误次数过").failure(AuthCode.TOO_MAY_RETRIES);
-        } catch (CredentialsException e) {
-            log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,密码或用户名错误", username);
-            token.clear();
-            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return Result.data(failureResult(fn + 1)).setMsg("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
-        } catch (AuthenticationException e) {
-            log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,堆栈轨迹如下", username, e);
-            token.clear();
-            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return Result.data(failureResult(fn + 1)).setMsg("密码或用户名错误").failure(AuthCode.INCORRECT_CREDENTIALS);
-        } catch (Exception e) {
-            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return Result.data(failureResult(fn + 1)).setMsg(e.getMessage()).failure(ResultCode.INTERNAL_SERVER_ERROR);
-//            return Result.message(e.getMessage()).with(failureResult(fn + 1)).failure(ResultCode.INTERNAL_SERVER_ERROR);
+        if (redirectUri != null && !redirectUri.isEmpty()) {
+            redirectUri += "?code=" + result.getCode();
+            response.sendRedirect(redirectUri);
+            return null;
+        } else {
+            return Result.data(result).success();
         }
     }
 
     @ApiOperation(value = "退出登录", notes = "该接口永远返回正确值，默认情况下我们无需理会")
     @PostMapping("/logout")
     public Result<String> doLogout(@SessionUser UserInfo userInfo) throws ResultException {
-        try {
-            Subject subject = SecurityUtils.getSubject();
-            log.debug("doLogout:> {} logout ...", subject.getPrincipal());
-            subject.logout();
-            if (null != quickAuthCallback) {
-                quickAuthCallback.onLogout(userInfo);
-            }
-        } catch (Exception e) {
-            log.warn("doLogout:> failed: ", e);
-        }
-
+        quickAuthentication.logout();
         return Result.data("DONE").success();
     }
 
@@ -536,15 +407,15 @@ public class AuthController {
     @ApiOperation(value = "用户信息", notes = "获取当前会话用户信息")
     @GetMapping("/profile")
     @RequiresUser
-    public Result<UserInfo> getUserProfile(@SessionUser UserInfo userInfo) throws ResultException {
-        Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
-        userInfo.setPassword("******");
-        Subject subject = SecurityUtils.getSubject();
-        Session session = subject.getSession(false);
-        if (null != session) {
-            userInfo.setCode(session.getId());
-        }
-        return Result.data(userInfo).success();
+    public Result<UserInfo> getUserProfile() throws ResultException {
+//        Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
+//        userInfo.setPassword("******");
+//        Subject subject = SecurityUtils.getSubject();
+//        Session session = subject.getSession(false);
+//        if (null != session) {
+//            userInfo.setCode(session.getId());
+//        }
+        return Result.data(quickAuthentication.userInfo()).success();
     }
 
     @PostMapping("/check-username")

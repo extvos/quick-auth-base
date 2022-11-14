@@ -176,6 +176,21 @@ public class UserInfo implements Serializable {
         this.extraInfo = extraInfo;
     }
 
+    public void updateExtraInfo(Map<String, Object>... extraInfos) {
+        if (null == extraInfos) {
+            return;
+        }
+        for (Map<String, Object> m : extraInfos) {
+            if (null != m) {
+                if (this.extraInfo == null) {
+                    this.extraInfo = m;
+                } else {
+                    this.extraInfo.putAll(m);
+                }
+            }
+        }
+    }
+
     @Override
     public String toString() {
         return "UserInfo{" +
