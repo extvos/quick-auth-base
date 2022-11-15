@@ -27,6 +27,7 @@ import plus.extvos.auth.utils.CredentialHash;
 import plus.extvos.auth.utils.SessionUtil;
 import plus.extvos.common.Assert;
 import plus.extvos.common.Result;
+import plus.extvos.common.ResultCode;
 import plus.extvos.common.Validator;
 import plus.extvos.common.exception.ResultException;
 
@@ -123,6 +124,10 @@ public class AuthController {
 
         } else {
             throw ResultException.badRequest("username of email or cellphone required");
+        }
+
+        if(!result.getResult().equals(ResultCode.OK)) {
+            throw ResultException.make(result.getResult(), result.getError(), result);
         }
 
         if (redirectUri != null && !redirectUri.isEmpty()) {

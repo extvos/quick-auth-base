@@ -13,12 +13,14 @@ import plus.extvos.auth.config.AuthBaseConstant;
 import plus.extvos.auth.dto.LoginResult;
 import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.auth.enums.AuthCode;
-import plus.extvos.auth.service.QuickAuthentication;
 import plus.extvos.auth.service.QuickAuthCallback;
 import plus.extvos.auth.service.QuickAuthService;
+import plus.extvos.auth.service.QuickAuthentication;
 import plus.extvos.auth.service.UserRegisterHook;
 import plus.extvos.auth.shiro.QuickToken;
 import plus.extvos.common.Assert;
+import plus.extvos.common.Code;
+import plus.extvos.common.ResultCode;
 import plus.extvos.common.exception.ResultException;
 
 @Service
@@ -35,13 +37,16 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
     @Autowired(required = false)
     private UserRegisterHook userRegisterHook;
 
-    private LoginResult failureResult(int failures, String... errs) {
-        LoginResult lr = new LoginResult();
-        lr.setFailures(failures);
+    private LoginResult failureResult(Code result, int failures, String... errs) {
+        String err = result.desc();
+//        LoginResult lr = new LoginResult();
+//        lr.setResult(result);
+//        lr.setFailures(failures);
         if (errs.length > 0) {
-            lr.setError(errs[0]);
+//            lr.setError(errs[0]);
+            err = errs[0];
         }
-        return lr;
+        return new LoginResult(result, failures, err);
     }
 
     @Override
@@ -66,11 +71,11 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         UserInfo userInfo = quickAuthService.getUserByEmail(email, true);
         if (null == userInfo) {
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with email <" + email + "> not found", failureResult(fn + 1));
+            throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with email <" + email + "> not found", failureResult(AuthCode.ACCOUNT_NOT_FOUND, fn + 1));
         }
         if (!verifier.equals(sess.getAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY))) {
             log.error("doLogin:> [{}] 验证码错误", email);
-            throw new ResultException(AuthCode.INCORRECT_VERIFIER, "incorrect verifier", failureResult(fn + 1));
+            throw new ResultException(AuthCode.INCORRECT_VERIFIER, "incorrect verifier", failureResult(AuthCode.INCORRECT_VERIFIER, fn + 1));
         }
         return loginImplicitly(userInfo, rememberMe);
     }
@@ -90,7 +95,7 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         UserInfo userInfo = quickAuthService.getUserByEmail(email, true);
         if (null == userInfo) {
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with email <" + email + "> not found", failureResult(fn + 1));
+            throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with email <" + email + "> not found", failureResult(AuthCode.ACCOUNT_NOT_FOUND, fn + 1));
         }
         return login(userInfo.getUsername(), password, algorithm, salt, userInfo, rememberMe);
     }
@@ -110,11 +115,11 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         UserInfo userInfo = quickAuthService.getUserByPhone(cellphone, true);
         if (null == userInfo) {
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with cellphone <" + cellphone + "> not found", failureResult(fn + 1));
+            throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with cellphone <" + cellphone + "> not found", failureResult(AuthCode.ACCOUNT_NOT_FOUND, fn + 1));
         }
         if (!verifier.equals(sess.getAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY))) {
             log.error("doLogin:> [{}] 验证码错误", cellphone);
-            throw new ResultException(AuthCode.INCORRECT_VERIFIER, "incorrect verifier", failureResult(fn + 1));
+            throw new ResultException(AuthCode.INCORRECT_VERIFIER, "incorrect verifier", failureResult(AuthCode.INCORRECT_VERIFIER, fn + 1));
         }
         return loginImplicitly(userInfo, rememberMe);
     }
@@ -134,12 +139,12 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         UserInfo userInfo = quickAuthService.getUserByPhone(cellphone, true);
         if (null == userInfo) {
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with cellphone <" + cellphone + "> not found", failureResult(fn + 1));
+            throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with cellphone <" + cellphone + "> not found", failureResult(AuthCode.ACCOUNT_NOT_FOUND, fn + 1));
         }
         return login(userInfo.getUsername(), password, algorithm, salt, userInfo, rememberMe);
     }
 
-    private LoginResult login(String username, String password, String algorithm, String salt, UserInfo userInfo, Boolean rememberMe) {
+    private LoginResult login(String username, String password, String algorithm, String salt, UserInfo userInfo, Boolean rememberMe) throws ResultException {
         // Get subject and session
         Subject sub = SecurityUtils.getSubject();
         // Need to create session here, when it's first access.
@@ -173,40 +178,40 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             token.clear();
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
 //            return failureResult(fn + 1),"").failure();
-            return failureResult(fn + 1, "用户不存在");
+            return failureResult(AuthCode.ACCOUNT_NOT_FOUND, fn + 1, "用户不存在");
         } catch (LockedAccountException lae) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户已锁定", username);
             token.clear();
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return failureResult(fn + 1, "账户已锁定");
+            return failureResult(AuthCode.ACCOUNT_LOCKED, fn + 1, "账户已锁定");
         } catch (DisabledAccountException lae) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,账户未启用", username);
             token.clear();
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return failureResult(fn + 1, "账户未启用");
+            return failureResult(AuthCode.ACCOUNT_DISABLED, fn + 1, "账户未启用");
         } catch (ExcessiveAttemptsException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,错误次数过多", username);
             token.clear();
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return failureResult(fn + 1, "错误次数过");
+            return failureResult(AuthCode.TOO_MANY_RETRIES, fn + 1, "错误次数过");
         } catch (CredentialsException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,密码或用户名错误", username);
             token.clear();
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return failureResult(fn + 1, "密码或用户名错误");
+            return failureResult(AuthCode.INCORRECT_CREDENTIALS, fn + 1, "密码或用户名错误");
         } catch (AuthenticationException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,堆栈轨迹如下", username, e);
             token.clear();
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return failureResult(fn + 1, "密码或用户名错误");
+            return failureResult(AuthCode.INCORRECT_CREDENTIALS, fn + 1, "密码或用户名错误");
         } catch (Exception e) {
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            return failureResult(fn + 1, e.getMessage());
+            return failureResult(ResultCode.INTERNAL_SERVER_ERROR, fn + 1, e.getMessage());
         }
     }
 
     @Override
-    public LoginResult loginImplicitly(UserInfo userInfo, Boolean rememberMe) {
+    public LoginResult loginImplicitly(UserInfo userInfo, Boolean rememberMe) throws ResultException {
         return login(userInfo.getUsername(), userInfo.getPassword(), "", "", userInfo, rememberMe);
     }
 
@@ -230,7 +235,7 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         Subject sub = SecurityUtils.getSubject();
         // Need to create session here, when it's first access.
         Session sess;
-        if(null == sessionId || sessionId.isEmpty()){
+        if (null == sessionId || sessionId.isEmpty()) {
             sess = sub.getSession(true);
         } else {
             sess = SecurityUtils.getSecurityManager().getSession(new DefaultSessionKey(sessionId));
@@ -256,7 +261,7 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         Subject sub = SecurityUtils.getSubject();
         // Need to create session here, when it's first access.
         Session sess;
-        if(null == sessionId || sessionId.isEmpty()){
+        if (null == sessionId || sessionId.isEmpty()) {
             sess = sub.getSession(true);
         } else {
             sess = SecurityUtils.getSecurityManager().getSession(new DefaultSessionKey(sessionId));
@@ -294,14 +299,14 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             if (!captcha.equals(sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY))) {
                 log.error("doLogin:> [{},{}] 验证码错误", captcha, sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY));
                 sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-                throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "invalid captcha", failureResult(fn + 1));
+                throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "invalid captcha", failureResult(AuthCode.INCORRECT_CAPTCHA, fn + 1));
             }
             // Remove it for avoid second use.
             sess.removeAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY);
         } else if (enabled) {
             log.error("doLogin:> [{},{}] 验证码未提供", captcha, sess.getAttribute(AuthBaseConstant.CAPTCHA_SESSION_KEY));
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
-            throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "captcha required", failureResult(fn + 1));
+            throw new ResultException(AuthCode.INCORRECT_CAPTCHA, "captcha required", failureResult(AuthCode.INCORRECT_CAPTCHA, fn + 1));
         }
     }
 }

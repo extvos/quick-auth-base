@@ -1,10 +1,12 @@
 package plus.extvos.auth.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import plus.extvos.common.Code;
+import plus.extvos.common.ResultCode;
 
 import java.io.Serializable;
 
-public class LoginResult  implements Serializable {
+public class LoginResult implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String username;
 
@@ -29,10 +31,21 @@ public class LoginResult  implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String error;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Code result;
+
     public LoginResult() {
+        this.result = ResultCode.OK;
+    }
+
+    public LoginResult(Code ret, int failures, String err) {
+        this.result = ret;
+        this.failures = failures;
+        this.error = err;
     }
 
     public LoginResult(String username, Serializable code, String redirectUri, Boolean redirect, UserInfo userInfo) {
+        this.result = ResultCode.OK;
         this.username = username;
         this.code = code;
         this.redirectUri = redirectUri;
@@ -102,5 +115,13 @@ public class LoginResult  implements Serializable {
 
     public void setRemembered(Boolean remembered) {
         this.remembered = remembered;
+    }
+
+    public Code getResult() {
+        return result;
+    }
+
+    public void setResult(Code result) {
+        this.result = result;
     }
 }

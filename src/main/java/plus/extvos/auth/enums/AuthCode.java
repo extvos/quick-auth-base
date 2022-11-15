@@ -24,7 +24,7 @@ public enum AuthCode implements Code {
      */
     ACCOUNT_DISABLED(40301, "Account Disabled"),
     ACCOUNT_LOCKED(40302, "Account Locked"),
-    TOO_MAY_RETRIES(40303, "Too Many Retries"),
+    TOO_MANY_RETRIES(40303, "Too Many Retries"),
     INCORRECT_CREDENTIALS(40304, "Incorrect Credentials"),
     /**
      *
