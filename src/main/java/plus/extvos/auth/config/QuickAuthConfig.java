@@ -25,6 +25,7 @@ public class QuickAuthConfig {
     private String defaultRoles = "";
 
     private String defaultPermissions = "";
+    private String siteName = "QuickStart";
 
     public String getSecret() {
         return secret;
@@ -135,5 +136,13 @@ public class QuickAuthConfig {
 
     public void setDefaultPermissions(String defaultPermissions) {
         this.defaultPermissions = defaultPermissions;
+    }
+
+    public String getSiteName() {
+        return siteName;
+    }
+
+    public void setSiteName(String siteName) {
+        this.siteName = siteName;
     }
 }

@@ -3,6 +3,7 @@ package plus.extvos.auth.service.impl;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.session.Session;
+import org.apache.shiro.session.mgt.DefaultSessionKey;
 import org.apache.shiro.subject.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -228,7 +229,13 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         // Get subject and session
         Subject sub = SecurityUtils.getSubject();
         // Need to create session here, when it's first access.
-        Session sess = sub.getSession(true);
+        Session sess;
+        if(null == sessionId || sessionId.isEmpty()){
+            sess = sub.getSession(true);
+        } else {
+            sess = SecurityUtils.getSecurityManager().getSession(new DefaultSessionKey(sessionId));
+        }
+
         return (UserInfo) sess.getAttribute(UserInfo.USER_INFO_KEY);
 
     }
@@ -248,8 +255,13 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         // Get subject and session
         Subject sub = SecurityUtils.getSubject();
         // Need to create session here, when it's first access.
-        Session sess = sub.getSession(true);
-        UserInfo orig = userInfo(sessionId);
+        Session sess;
+        if(null == sessionId || sessionId.isEmpty()){
+            sess = sub.getSession(true);
+        } else {
+            sess = SecurityUtils.getSecurityManager().getSession(new DefaultSessionKey(sessionId));
+        }
+        UserInfo orig = (UserInfo) sess.getAttribute(UserInfo.USER_INFO_KEY);
         if (userInfo.getExtraInfo() != null) {
             orig.setExtraInfo(userInfo.getExtraInfo());
         }
