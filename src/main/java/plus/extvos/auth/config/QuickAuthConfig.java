@@ -27,6 +27,8 @@ public class QuickAuthConfig {
     private String defaultPermissions = "";
     private String siteName = "QuickStart";
 
+    private String logoImage = "";
+
     public String getSecret() {
         return secret;
     }
@@ -144,5 +146,13 @@ public class QuickAuthConfig {
 
     public void setSiteName(String siteName) {
         this.siteName = siteName;
+    }
+
+    public String getLogoImage() {
+        return logoImage;
+    }
+
+    public void setLogoImage(String logoImage) {
+        this.logoImage = logoImage;
     }
 }
