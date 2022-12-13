@@ -126,7 +126,7 @@ public class AuthController {
             throw ResultException.badRequest("username of email or cellphone required");
         }
 
-        if(!result.getResult().equals(ResultCode.OK)) {
+        if (!result.getResult().equals(ResultCode.OK)) {
             throw ResultException.make(result.getResult(), result.getError(), result);
         }
 
@@ -341,23 +341,33 @@ public class AuthController {
     @ApiOperation(value = "重置密码", notes = "重置用户密码")
     @PostMapping("/reset-password")
     public Result<String> resetPassword(@RequestParam(value = "verifier", required = true) String verifier,
+                                        @RequestParam(value = "cellphone", required = false) String cellphone,
+                                        @RequestParam(value = "email", required = false) String email,
                                         @RequestParam(value = "newPassword1", required = false) String newPassword1,
                                         @RequestParam(value = "newPassword2", required = false) String newPassword2,
-                                        @RequestBody(required = false) Map<String, String> params,
-                                        @SessionUser String username) throws ResultException {
+                                        @RequestBody(required = false) Map<String, String> params
+    ) throws ResultException {
         if (Validator.notEmpty(params)) {
             verifier = params.getOrDefault("verifier", "");
+            cellphone = params.getOrDefault("cellphone", null);
+            email = params.getOrDefault("email", null);
             newPassword1 = params.getOrDefault("newPassword1", "");
             newPassword2 = params.getOrDefault("newPassword2", "");
         }
-        Assert.notEmpty(username, ResultException.forbidden("can not get current username"));
+//        Assert.notEmpty(username, ResultException.forbidden("can not get current username"));
         Assert.notEmpty(verifier, ResultException.badRequest("verifier can not be empty"));
         Assert.notEmpty(newPassword1, ResultException.badRequest("newPassword1 can not be empty"));
         Assert.notEmpty(newPassword2, ResultException.badRequest("newPassword2 can not be empty"));
         Assert.equals(newPassword1, newPassword2, ResultException.badRequest("newPassword1 and newPassword2 should be the same"));
-        UserInfo userInfo = quickAuthService.getUserByName(username, false);
-        if (null == userInfo) {
-            throw ResultException.forbidden("can not get userInfo");
+        UserInfo userInfo = null;
+        if (null != cellphone) {
+            userInfo = quickAuthService.getUserByPhone(cellphone, true);
+            Assert.notNull(userInfo, ResultException.forbidden("can not get userInfo by cellphone"));
+        } else if (null != email) {
+            userInfo = quickAuthService.getUserByEmail(email, true);
+            Assert.notNull(userInfo, ResultException.forbidden("can not get userInfo by email"));
+        } else {
+            throw ResultException.forbidden("cellphone or email required");
         }
         Subject subject = SecurityUtils.getSubject();
         Session session = subject.getSession(false);
@@ -365,7 +375,7 @@ public class AuthController {
             throw ResultException.forbidden("not in a session");
         }
         Assert.equals(verifier, session.getAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY), ResultException.forbidden("invalid verifier"));
-        quickAuthService.updateUserInfo(username, newPassword1, null, null, null);
+        quickAuthService.updateUserInfo(userInfo.getUsername(), newPassword1, null, null, null);
         return Result.data("OK").success();
     }
 
