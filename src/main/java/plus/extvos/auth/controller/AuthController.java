@@ -251,6 +251,7 @@ public class AuthController {
         }
         String code = CredentialGenerator.getDecimalDigits(authConfig.getSmsCodeLength());
         sess.setAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY, code);
+        sess.setAttribute(AuthBaseConstant.VERIFIER_SESSION_PHONE, cellphone);
         if (smsService.sendSecretCode(cellphone, code)) {
             return Result.data("OK").success();
         } else {
@@ -359,20 +360,26 @@ public class AuthController {
         Assert.notEmpty(newPassword1, ResultException.badRequest("newPassword1 can not be empty"));
         Assert.notEmpty(newPassword2, ResultException.badRequest("newPassword2 can not be empty"));
         Assert.equals(newPassword1, newPassword2, ResultException.badRequest("newPassword1 and newPassword2 should be the same"));
-        UserInfo userInfo = null;
-        if (null != cellphone) {
-            userInfo = quickAuthService.getUserByPhone(cellphone, true);
-            Assert.notNull(userInfo, ResultException.forbidden("can not get userInfo by cellphone"));
-        } else if (null != email) {
-            userInfo = quickAuthService.getUserByEmail(email, true);
-            Assert.notNull(userInfo, ResultException.forbidden("can not get userInfo by email"));
-        } else {
-            throw ResultException.forbidden("cellphone or email required");
-        }
         Subject subject = SecurityUtils.getSubject();
         Session session = subject.getSession(false);
         if (null == session) {
             throw ResultException.forbidden("not in a session");
+        }
+        UserInfo userInfo = null;
+        if (null != cellphone) {
+            Object sess_phone = session.getAttribute(AuthBaseConstant.VERIFIER_SESSION_PHONE);
+            Assert.notNull(sess_phone, ResultException.forbidden("not a valid session"));
+            Assert.notEquals((String) sess_phone, cellphone, ResultException.forbidden("invalid cellphone"));
+            userInfo = quickAuthService.getUserByPhone(cellphone, true);
+            Assert.notNull(userInfo, ResultException.forbidden("can not get userInfo by cellphone"));
+        } else if (null != email) {
+            Object sess_email = session.getAttribute(AuthBaseConstant.VERIFIER_SESSION_EMAIL);
+            Assert.notNull(sess_email, ResultException.forbidden("not a valid session"));
+            Assert.notEquals((String) sess_email, email, ResultException.forbidden("invalid email"));
+            userInfo = quickAuthService.getUserByEmail(email, true);
+            Assert.notNull(userInfo, ResultException.forbidden("can not get userInfo by email"));
+        } else {
+            throw ResultException.forbidden("cellphone or email required");
         }
         Assert.equals(verifier, session.getAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY), ResultException.forbidden("invalid verifier"));
         quickAuthService.updateUserInfo(userInfo.getUsername(), newPassword1, null, null, null);
