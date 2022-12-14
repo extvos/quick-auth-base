@@ -369,13 +369,13 @@ public class AuthController {
         if (null != cellphone) {
             Object sess_phone = session.getAttribute(AuthBaseConstant.VERIFIER_SESSION_PHONE);
             Assert.notNull(sess_phone, ResultException.forbidden("not a valid session"));
-            Assert.notEquals((String) sess_phone, cellphone, ResultException.forbidden("invalid cellphone"));
+            Assert.equals((String) sess_phone, cellphone, ResultException.forbidden("invalid cellphone"));
             userInfo = quickAuthService.getUserByPhone(cellphone, true);
             Assert.notNull(userInfo, ResultException.forbidden("can not get userInfo by cellphone"));
         } else if (null != email) {
             Object sess_email = session.getAttribute(AuthBaseConstant.VERIFIER_SESSION_EMAIL);
             Assert.notNull(sess_email, ResultException.forbidden("not a valid session"));
-            Assert.notEquals((String) sess_email, email, ResultException.forbidden("invalid email"));
+            Assert.equals((String) sess_email, email, ResultException.forbidden("invalid email"));
             userInfo = quickAuthService.getUserByEmail(email, true);
             Assert.notNull(userInfo, ResultException.forbidden("can not get userInfo by email"));
         } else {
