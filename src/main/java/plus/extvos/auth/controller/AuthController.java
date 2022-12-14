@@ -430,14 +430,11 @@ public class AuthController {
     @GetMapping("/profile")
     @RequiresUser
     public Result<UserInfo> getUserProfile() throws ResultException {
-//        Assert.notNull(userInfo, ResultException.forbidden("can not get current userInfo"));
-//        userInfo.setPassword("******");
-//        Subject subject = SecurityUtils.getSubject();
-//        Session session = subject.getSession(false);
-//        if (null != session) {
-//            userInfo.setCode(session.getId());
-//        }
-        return Result.data(quickAuthentication.userInfo()).success();
+        UserInfo userInfo = quickAuthentication.userInfo();
+        Assert.notNull(userInfo, ResultException.unauthorized("can not get current userInfo"));
+        UserInfo u1 = quickAuthService.getUserById(userInfo.getUserId(), true);
+        Assert.notNull(u1, ResultException.unauthorized("can not get current userInfo"));
+        return Result.data(userInfo).success();
     }
 
     @PostMapping("/check-username")
