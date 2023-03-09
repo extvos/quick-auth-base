@@ -143,6 +143,9 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<String> doLogout(@SessionUser UserInfo userInfo) throws ResultException {
         quickAuthentication.logout();
+        if (null != quickAuthCallback) {
+            quickAuthCallback.onLogout(userInfo);
+        }
         return Result.data("DONE").success();
     }
 

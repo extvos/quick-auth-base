@@ -221,9 +221,6 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             Subject subject = SecurityUtils.getSubject();
             log.debug("doLogout:> {} logout ...", subject.getPrincipal());
             subject.logout();
-            if (null != quickAuthCallback) {
-                quickAuthCallback.onLogout(userInfo());
-            }
         } catch (Exception e) {
             log.warn("doLogout:> failed: ", e);
         }
@@ -240,7 +237,6 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
         } else {
             sess = SecurityUtils.getSecurityManager().getSession(new DefaultSessionKey(sessionId));
         }
-
         return (UserInfo) sess.getAttribute(UserInfo.USER_INFO_KEY);
 
     }
