@@ -26,7 +26,7 @@ public class QuickRealm extends AuthorizingRealm {
 
     private static final Logger log = LoggerFactory.getLogger(QuickRealm.class);
 
-//    @Autowired
+    //    @Autowired
     private QuickAuthService quickAuthService;
 
     @Override
@@ -60,15 +60,28 @@ public class QuickRealm extends AuthorizingRealm {
             }
             //添加角色和权限
             SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
-
-            for (RoleInfo role : quickAuthService.getRoles(user.getUserId())) {
-                //添加角色
-                simpleAuthorizationInfo.addRole(role.getCode());
+            if (quickAuthService.getRoles(user) != null) {
+                for (RoleInfo role : quickAuthService.getRoles(user)) {
+                    //添加角色
+                    simpleAuthorizationInfo.addRole(role.getCode());
+                }
+            } else {
+                for (RoleInfo role : quickAuthService.getRoles(user.getUserId())) {
+                    //添加角色
+                    simpleAuthorizationInfo.addRole(role.getCode());
+                }
             }
             //添加权限
-            for (PermissionInfo permission : quickAuthService.getPermissions(user.getUserId())) {
-                simpleAuthorizationInfo.addStringPermission(permission.getCode());
+            if (quickAuthService.getPermissions(user) != null) {
+                for (PermissionInfo permission : quickAuthService.getPermissions(user)) {
+                    simpleAuthorizationInfo.addStringPermission(permission.getCode());
+                }
+            } else {
+                for (PermissionInfo permission : quickAuthService.getPermissions(user.getUserId())) {
+                    simpleAuthorizationInfo.addStringPermission(permission.getCode());
+                }
             }
+
             return simpleAuthorizationInfo;
         } catch (Exception e) {
             log.error("doGetAuthorizationInfo>", e);

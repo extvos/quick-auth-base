@@ -6,6 +6,7 @@ import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.common.exception.ResultException;
 
 import java.io.Serializable;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +27,7 @@ public interface QuickAuthService {
     /**
      * Get UserInfo by id
      *
-     * @param id            of user
+     * @param id           of user
      * @param checkEnabled check if user enabled or not
      * @return UserInfo
      * @throws ResultException when errors
@@ -65,6 +66,19 @@ public interface QuickAuthService {
      */
     List<RoleInfo> getRoles(Serializable id) throws ResultException;
 
+    default List<RoleInfo> getRoles(UserInfo userInfo) throws ResultException {
+        if (userInfo.getRoles() != null && userInfo.getRoles().length > 0) {
+            List<RoleInfo> rs = new LinkedList<>();
+            for (String s : userInfo.getRoles()) {
+                rs.add(new RoleInfo(s, s));
+            }
+            return rs;
+        }
+        return null;
+    }
+
+    ;
+
     /**
      * Get user permissions by id
      *
@@ -73,6 +87,19 @@ public interface QuickAuthService {
      * @throws ResultException when errors
      */
     List<PermissionInfo> getPermissions(Serializable id) throws ResultException;
+
+    default List<PermissionInfo> getPermissions(UserInfo userInfo) throws ResultException {
+        if (userInfo.getRoles() != null && userInfo.getRoles().length > 0) {
+            List<PermissionInfo> rs = new LinkedList<>();
+            for (String s : userInfo.getRoles()) {
+                rs.add(new PermissionInfo(s, s));
+            }
+            return rs;
+        }
+        return null;
+    }
+
+    ;
 
     /**
      * Fill userInfo object with more details like roles, permissions etc...
