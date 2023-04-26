@@ -14,6 +14,7 @@ public class SessionUtil {
 
     /**
      * get current userInfo
+     *
      * @return UserInfo if presented or null
      */
     public static UserInfo currentUserInfo() {
@@ -31,6 +32,7 @@ public class SessionUtil {
 
     /**
      * get current username
+     *
      * @return String of username of null
      */
     public static String currentUsername() {
@@ -73,6 +75,54 @@ public class SessionUtil {
         // Remove it for avoid second use.
         sess.removeAttribute(AuthBaseConstant.VERIFIER_SESSION_KEY);
         return true;
+    }
+
+    public static void hasRoles(String... roles) throws ResultException {
+        // Get subject and session
+        Subject sub = SecurityUtils.getSubject();
+        for (String role : roles) {
+            if (!sub.hasRole(role)) {
+                throw ResultException.forbidden();
+            }
+        }
+    }
+
+    public static void hasAnyRole(String... roles) throws ResultException {
+        if (roles.length < 1) {
+            return;
+        }
+        // Get subject and session
+        Subject sub = SecurityUtils.getSubject();
+        for (String role : roles) {
+            if (sub.hasRole(role)) {
+                return;
+            }
+        }
+        throw ResultException.forbidden();
+    }
+
+    public static void hasPermissions(String... perms) throws ResultException {
+        // Get subject and session
+        Subject sub = SecurityUtils.getSubject();
+        for (String perm : perms) {
+            if (!sub.isPermitted(perm)) {
+                throw ResultException.forbidden();
+            }
+        }
+    }
+
+    public static void hasAnyPermission(String... perms) throws ResultException {
+        if (perms.length < 1) {
+            return;
+        }
+        // Get subject and session
+        Subject sub = SecurityUtils.getSubject();
+        for (String perm : perms) {
+            if (sub.isPermitted(perm)) {
+                return;
+            }
+        }
+        throw ResultException.forbidden();
     }
 
 }
