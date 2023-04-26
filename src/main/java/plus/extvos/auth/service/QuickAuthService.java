@@ -64,7 +64,9 @@ public interface QuickAuthService {
      * @return role list
      * @throws ResultException when errors
      */
-    List<RoleInfo> getRoles(Serializable id) throws ResultException;
+    default List<RoleInfo> getRoles(Serializable id) throws ResultException {
+        return null;
+    }
 
     default List<RoleInfo> getRoles(UserInfo userInfo) throws ResultException {
         if (userInfo.getRoles() != null && userInfo.getRoles().length > 0) {
@@ -77,8 +79,6 @@ public interface QuickAuthService {
         return null;
     }
 
-    ;
-
     /**
      * Get user permissions by id
      *
@@ -86,7 +86,9 @@ public interface QuickAuthService {
      * @return permission list
      * @throws ResultException when errors
      */
-    List<PermissionInfo> getPermissions(Serializable id) throws ResultException;
+    default List<PermissionInfo> getPermissions(Serializable id) throws ResultException {
+        return null;
+    }
 
     default List<PermissionInfo> getPermissions(UserInfo userInfo) throws ResultException {
         if (userInfo.getRoles() != null && userInfo.getRoles().length > 0) {
@@ -98,8 +100,6 @@ public interface QuickAuthService {
         }
         return null;
     }
-
-    ;
 
     /**
      * Fill userInfo object with more details like roles, permissions etc...
