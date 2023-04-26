@@ -53,7 +53,10 @@ public class QuickRealm extends AuthorizingRealm {
             if (obj instanceof SimpleAuthorizationInfo) {
                 return (SimpleAuthorizationInfo) obj;
             }
-            UserInfo user = quickAuthService.getUserByName(name, true);
+            UserInfo user = (UserInfo) session.getAttribute(UserInfo.USER_INFO_KEY);
+            if (null == user) {
+                user = quickAuthService.getUserByName(name, true);
+            }
             if (null == user) {
                 log.debug("doGetAuthorizationInfo> can not get user by username {}", name);
                 return null;
@@ -103,7 +106,10 @@ public class QuickRealm extends AuthorizingRealm {
         String username = authenticationToken.getPrincipal().toString();
         log.debug("doGetAuthenticationInfo> try username = {}", username);
         try {
-            UserInfo userInfo = quickAuthService.getUserByName(username, true);
+            UserInfo userInfo = (UserInfo) session.getAttribute(UserInfo.USER_INFO_KEY);
+            if (null == userInfo) {
+                userInfo = quickAuthService.getUserByName(username, true);
+            }
             if (userInfo == null) {
                 //这里返回后会报出对应异常
                 log.warn("doGetAuthenticationInfo> can not get user by username {}", username);
