@@ -142,10 +142,10 @@ public class AuthController {
     @ApiOperation(value = "退出登录", notes = "该接口永远返回正确值，默认情况下我们无需理会")
     @PostMapping("/logout")
     public Result<String> doLogout(@SessionUser UserInfo userInfo) throws ResultException {
-        quickAuthentication.logout();
         if (null != quickAuthCallback) {
             quickAuthCallback.onLogout(userInfo);
         }
+        quickAuthentication.logout();
         return Result.data("DONE").success();
     }
 
