@@ -38,6 +38,13 @@ public class QuickRealm extends AuthorizingRealm {
         return token instanceof QuickToken;
     }
 
+    private QuickAuthService authService() {
+        if (null == quickAuthService) {
+            quickAuthService = SpringContextHolder.getBean(QuickAuthService.class);
+        }
+        return quickAuthService;
+    }
+
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
         log.debug("doGetAuthorizationInfo: {}", principalCollection.getClass().toString());
@@ -55,7 +62,7 @@ public class QuickRealm extends AuthorizingRealm {
             }
             UserInfo user = (UserInfo) session.getAttribute(UserInfo.USER_INFO_KEY);
             if (null == user) {
-                user = quickAuthService.getUserByName(name, true);
+                user = authService().getUserByName(name, true);
             }
             if (null == user) {
                 log.debug("doGetAuthorizationInfo> can not get user by username {}", name);
@@ -63,24 +70,24 @@ public class QuickRealm extends AuthorizingRealm {
             }
             //添加角色和权限
             SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
-            if (quickAuthService.getRoles(user) != null) {
-                for (RoleInfo role : quickAuthService.getRoles(user)) {
+            if (authService().getRoles(user) != null) {
+                for (RoleInfo role : authService().getRoles(user)) {
                     //添加角色
                     simpleAuthorizationInfo.addRole(role.getCode());
                 }
             } else {
-                for (RoleInfo role : quickAuthService.getRoles(user.getUserId())) {
+                for (RoleInfo role : authService().getRoles(user.getUserId())) {
                     //添加角色
                     simpleAuthorizationInfo.addRole(role.getCode());
                 }
             }
             //添加权限
-            if (quickAuthService.getPermissions(user) != null) {
-                for (PermissionInfo permission : quickAuthService.getPermissions(user)) {
+            if (authService().getPermissions(user) != null) {
+                for (PermissionInfo permission : authService().getPermissions(user)) {
                     simpleAuthorizationInfo.addStringPermission(permission.getCode());
                 }
             } else {
-                for (PermissionInfo permission : quickAuthService.getPermissions(user.getUserId())) {
+                for (PermissionInfo permission : authService().getPermissions(user.getUserId())) {
                     simpleAuthorizationInfo.addStringPermission(permission.getCode());
                 }
             }
@@ -108,7 +115,7 @@ public class QuickRealm extends AuthorizingRealm {
         try {
             UserInfo userInfo = (UserInfo) session.getAttribute(UserInfo.USER_INFO_KEY);
             if (null == userInfo) {
-                userInfo = quickAuthService.getUserByName(username, true);
+                userInfo = authService().getUserByName(username, true);
             }
             if (userInfo == null) {
                 //这里返回后会报出对应异常
