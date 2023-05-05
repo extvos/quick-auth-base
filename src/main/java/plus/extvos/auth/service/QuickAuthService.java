@@ -6,6 +6,7 @@ import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.common.exception.ResultException;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,7 @@ public interface QuickAuthService {
      * @throws ResultException when errors
      */
     default List<RoleInfo> getRoles(Serializable id) throws ResultException {
-        return null;
+        return new ArrayList<>(0);
     }
 
     default List<RoleInfo> getRoles(UserInfo userInfo) throws ResultException {
@@ -87,7 +88,7 @@ public interface QuickAuthService {
      * @throws ResultException when errors
      */
     default List<PermissionInfo> getPermissions(Serializable id) throws ResultException {
-        return null;
+        return new ArrayList<>(0);
     }
 
     default List<PermissionInfo> getPermissions(UserInfo userInfo) throws ResultException {
