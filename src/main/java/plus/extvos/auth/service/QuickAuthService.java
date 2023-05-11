@@ -92,9 +92,9 @@ public interface QuickAuthService {
     }
 
     default List<PermissionInfo> getPermissions(UserInfo userInfo) throws ResultException {
-        if (userInfo.getRoles() != null && userInfo.getRoles().length > 0) {
+        if (userInfo.getPermissions() != null && userInfo.getPermissions().length > 0) {
             List<PermissionInfo> rs = new LinkedList<>();
-            for (String s : userInfo.getRoles()) {
+            for (String s : userInfo.getPermissions()) {
                 rs.add(new PermissionInfo(s, s));
             }
             return rs;
