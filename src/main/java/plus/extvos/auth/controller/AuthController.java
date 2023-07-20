@@ -176,7 +176,7 @@ public class AuthController {
 
     @ApiOperation(value = "获取图片验证码", notes = "获取图片验证码，直接输出图片")
     @RequestMapping(produces = MediaType.IMAGE_PNG_VALUE, value = "/captcha-image", method = RequestMethod.GET)
-    protected ModelAndView getCaptchaImageRaw(final HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ModelAndView getCaptchaImageRaw(final HttpServletRequest request, HttpServletResponse response) throws IOException {
 
         Subject subject = SecurityUtils.getSubject();
         Session session = subject.getSession(true);
