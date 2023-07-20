@@ -114,7 +114,7 @@ public class QuickRealm extends AuthorizingRealm {
         log.debug("doGetAuthenticationInfo> try username = {}", username);
         try {
             UserInfo userInfo = (UserInfo) session.getAttribute(UserInfo.USER_INFO_KEY);
-            if (null == userInfo || userInfo.getUsername().equals(username)) {
+            if (null == userInfo || !userInfo.getUsername().equals(username)) {
                 userInfo = authService().getUserByName(username, true);
             }
             if (userInfo == null) {
