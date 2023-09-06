@@ -10,6 +10,7 @@ import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -135,6 +136,13 @@ public class AuthController {
             response.sendRedirect(redirectUri);
             return null;
         } else {
+            UserInfo userInfo = result.getUserInfo();
+            UserInfo u = new UserInfo();
+            if (null != userInfo) {
+                BeanUtils.copyProperties(userInfo, u);
+                u.setPassword("********");
+            }
+            result.setUserInfo(u);
             return Result.data(result).success();
         }
     }
@@ -437,7 +445,10 @@ public class AuthController {
         Assert.notNull(userInfo, ResultException.unauthorized("can not get current userInfo"));
         UserInfo u1 = quickAuthService.getUserById(userInfo.getUserId(), true);
         Assert.notNull(u1, ResultException.unauthorized("can not get current userInfo"));
-        return Result.data(userInfo).success();
+        UserInfo u = new UserInfo();
+        BeanUtils.copyProperties(userInfo, u);
+        u.setPassword("******");
+        return Result.data(u).success();
     }
 
     @PostMapping("/check-username")

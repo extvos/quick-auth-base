@@ -169,7 +169,7 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             }
             userInfo.setCode(sess.getId());
             sess.setAttribute(UserInfo.USER_INFO_KEY, userInfo);
-            userInfo.setPassword("*******");
+//            userInfo.setPassword("*******");
             LoginResult lr = new LoginResult(token.getUsername(), sess.getId(), null, null, userInfo);
             lr.setRemembered(token.isRememberMe());
             sess.removeAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT);
