@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "quick.auth.base")
 public class QuickAuthConfig {
     private String secret = "quick";
-    private int maxAge = 2592000;
+    private int maxAge = 86400;
     private boolean saltRequired = false;
     private boolean captchaRequired = false;
     private boolean autoCaptcha = false;

@@ -164,10 +164,10 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
                 userInfo = quickAuthService.getUserByName(username, false);
             }
             userInfo = quickAuthService.fillUserInfo(userInfo);
+            userInfo.setCode(sess.getId());
             if (null != quickAuthCallback) {
                 userInfo = quickAuthCallback.onLoggedIn(userInfo);
             }
-            userInfo.setCode(sess.getId());
             sess.setAttribute(UserInfo.USER_INFO_KEY, userInfo);
 //            userInfo.setPassword("*******");
             LoginResult lr = new LoginResult(token.getUsername(), sess.getId(), null, null, userInfo);
