@@ -3,6 +3,8 @@ package plus.extvos.auth.service;
 import plus.extvos.auth.dto.UserInfo;
 import plus.extvos.common.exception.ResultException;
 
+import java.util.Map;
+
 /**
  * @author shenmc
  */
@@ -14,7 +16,7 @@ public interface QuickAuthCallback {
      * @return UserInfo if updated
      * @throws ResultException when error
      */
-    UserInfo onLoggedIn(UserInfo userInfo) throws ResultException;
+    UserInfo onLoggedIn(UserInfo userInfo, Map<String, String> params) throws ResultException;
 
     /**
      * On Logout call back

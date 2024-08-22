@@ -23,6 +23,8 @@ import plus.extvos.common.Code;
 import plus.extvos.common.ResultCode;
 import plus.extvos.common.exception.ResultException;
 
+import java.util.Map;
+
 @Service
 public class QuickAuthenticationImpl implements QuickAuthentication {
 
@@ -50,14 +52,14 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
     }
 
     @Override
-    public LoginResult loginByUsername(String username, String password, String algorithm, String salt, Boolean rememberMe) throws ResultException {
+    public LoginResult loginByUsername(String username, String password, String algorithm, String salt, Boolean rememberMe, Map<String, String> params) throws ResultException {
         Assert.notEmpty(username, ResultException.badRequest("username can not be empty"));
         Assert.notEmpty(password, ResultException.badRequest("password can not be empty"));
-        return login(username, password, algorithm, salt, null, rememberMe);
+        return login(username, password, algorithm, salt, null, rememberMe, params);
     }
 
     @Override
-    public LoginResult loginByEmail(String email, String verifier, Boolean rememberMe) throws ResultException {
+    public LoginResult loginByEmail(String email, String verifier, Boolean rememberMe, Map<String, String> params) throws ResultException {
         Assert.notEmpty(email, ResultException.badRequest("email can not be empty"));
         Assert.notEmpty(verifier, ResultException.badRequest("verifier can not be empty"));
         // Get subject and session
@@ -77,11 +79,11 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             log.error("doLogin:> [{}] 验证码错误", email);
             throw new ResultException(AuthCode.INCORRECT_VERIFIER, "incorrect verifier", failureResult(AuthCode.INCORRECT_VERIFIER, fn + 1));
         }
-        return loginImplicitly(userInfo, rememberMe);
+        return loginImplicitly(userInfo, rememberMe, params);
     }
 
     @Override
-    public LoginResult loginByEmail(String email, String password, String algorithm, String salt, Boolean rememberMe) throws ResultException {
+    public LoginResult loginByEmail(String email, String password, String algorithm, String salt, Boolean rememberMe, Map<String, String> params) throws ResultException {
         Assert.notEmpty(email, ResultException.badRequest("email can not be empty"));
         Assert.notEmpty(password, ResultException.badRequest("password can not be empty"));
         // Get subject and session
@@ -97,11 +99,11 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with email <" + email + "> not found", failureResult(AuthCode.ACCOUNT_NOT_FOUND, fn + 1));
         }
-        return login(userInfo.getUsername(), password, algorithm, salt, userInfo, rememberMe);
+        return login(userInfo.getUsername(), password, algorithm, salt, userInfo, rememberMe, params);
     }
 
     @Override
-    public LoginResult loginByCellphone(String cellphone, String verifier, Boolean rememberMe) throws ResultException {
+    public LoginResult loginByCellphone(String cellphone, String verifier, Boolean rememberMe, Map<String, String> params) throws ResultException {
         Assert.notEmpty(cellphone, ResultException.badRequest("cellphone can not be empty"));
         Assert.notEmpty(verifier, ResultException.badRequest("verifier can not be empty"));
         // Get subject and session
@@ -121,11 +123,11 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             log.error("doLogin:> [{}] 验证码错误", cellphone);
             throw new ResultException(AuthCode.INCORRECT_VERIFIER, "incorrect verifier", failureResult(AuthCode.INCORRECT_VERIFIER, fn + 1));
         }
-        return loginImplicitly(userInfo, rememberMe);
+        return loginImplicitly(userInfo, rememberMe, params);
     }
 
     @Override
-    public LoginResult loginByCellphone(String cellphone, String password, String algorithm, String salt, Boolean rememberMe) throws ResultException {
+    public LoginResult loginByCellphone(String cellphone, String password, String algorithm, String salt, Boolean rememberMe, Map<String, String> params) throws ResultException {
         Assert.notEmpty(cellphone, ResultException.badRequest("cellphone can not be empty"));
         Assert.notEmpty(password, ResultException.badRequest("password can not be empty"));
         // Get subject and session
@@ -141,10 +143,11 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
             throw new ResultException(AuthCode.ACCOUNT_NOT_FOUND, "user with cellphone <" + cellphone + "> not found", failureResult(AuthCode.ACCOUNT_NOT_FOUND, fn + 1));
         }
-        return login(userInfo.getUsername(), password, algorithm, salt, userInfo, rememberMe);
+        return login(userInfo.getUsername(), password, algorithm, salt, userInfo, rememberMe, params);
     }
 
-    private LoginResult login(String username, String password, String algorithm, String salt, UserInfo userInfo, Boolean rememberMe) throws ResultException {
+    private LoginResult login(String username, String password, String algorithm, String salt, UserInfo userInfo, Boolean rememberMe, Map<String, String> params) throws ResultException {
+//        log.debug("login:> params: {}", params);
         // Get subject and session
         Subject sub = SecurityUtils.getSubject();
         // Need to create session here, when it's first access.
@@ -166,7 +169,7 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             userInfo = quickAuthService.fillUserInfo(userInfo);
             userInfo.setCode(sess.getId());
             if (null != quickAuthCallback) {
-                userInfo = quickAuthCallback.onLoggedIn(userInfo);
+                userInfo = quickAuthCallback.onLoggedIn(userInfo, params);
             }
             sess.setAttribute(UserInfo.USER_INFO_KEY, userInfo);
 //            userInfo.setPassword("*******");
@@ -174,6 +177,12 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
             lr.setRemembered(token.isRememberMe());
             sess.removeAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT);
             return lr;
+        } catch (ResultException re) {
+            log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过", username);
+            token.clear();
+            sess.setAttribute(AuthBaseConstant.FAILURE_SESSION_COUNT, fn + 1);
+//            return failureResult(fn + 1),"").failure();
+            return failureResult(re.getCode(), fn + 1, re.getMessage());
         } catch (UnknownAccountException e) {
             log.error("doLogin:> 对用户[{}]进行登录验证,验证未通过,用户不存在", username);
             token.clear();
@@ -212,8 +221,8 @@ public class QuickAuthenticationImpl implements QuickAuthentication {
     }
 
     @Override
-    public LoginResult loginImplicitly(UserInfo userInfo, Boolean rememberMe) throws ResultException {
-        return login(userInfo.getUsername(), userInfo.getPassword(), "", "", userInfo, rememberMe);
+    public LoginResult loginImplicitly(UserInfo userInfo, Boolean rememberMe, Map<String, String> params) throws ResultException {
+        return login(userInfo.getUsername(), userInfo.getPassword(), "", "", userInfo, rememberMe, params);
     }
 
     @Override

@@ -41,6 +41,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -87,9 +88,11 @@ public class AuthController {
             @RequestParam(value = "captcha", required = false) String captcha,
             @RequestParam(value = "rememberMe", required = false) Boolean rememberMe,
             @RequestParam(value = "redirectUri", required = false) String redirectUri,
+            @RequestParam(required = false) Map<String, String> queries,
             @RequestBody(required = false) Map<String, String> params,
             HttpServletResponse response) throws ResultException, IOException {
         /* Support client to login with FORM or in JSON format */
+//        log.debug("doLogin:> {} | {}", params, queries);
         if (params != null && !params.isEmpty()) {
             username = params.getOrDefault("username", username);
             email = params.getOrDefault("email", email);
@@ -101,6 +104,11 @@ public class AuthController {
             captcha = params.getOrDefault("captcha", captcha);
             rememberMe = params.getOrDefault("rememberMe", String.valueOf(rememberMe)).equalsIgnoreCase("true");
             redirectUri = params.getOrDefault("redirectUri", redirectUri);
+        } else {
+            params = new HashMap<>();
+            if (queries != null) {
+                params.putAll(queries);
+            }
         }
 
         LoginResult result = null;
@@ -108,19 +116,19 @@ public class AuthController {
         quickAuthentication.validateCaptcha(captcha, isCaptchaRequired);
 
         if (Validator.notEmpty(username)) {
-            result = quickAuthentication.loginByUsername(username, password, algorithm, salt, rememberMe);
+            result = quickAuthentication.loginByUsername(username, password, algorithm, salt, rememberMe, params);
         } else if (Validator.notEmpty(email)) {
             if (Validator.notEmpty(verifier)) {
-                result = quickAuthentication.loginByEmail(email, verifier, rememberMe);
+                result = quickAuthentication.loginByEmail(email, verifier, rememberMe, params);
             } else {
-                result = quickAuthentication.loginByEmail(email, password, algorithm, salt, rememberMe);
+                result = quickAuthentication.loginByEmail(email, password, algorithm, salt, rememberMe, params);
             }
 
         } else if (Validator.notEmpty(cellphone)) {
             if (Validator.notEmpty(verifier)) {
-                result = quickAuthentication.loginByCellphone(cellphone, verifier, rememberMe);
+                result = quickAuthentication.loginByCellphone(cellphone, verifier, rememberMe, params);
             } else {
-                result = quickAuthentication.loginByCellphone(cellphone, password, algorithm, salt, rememberMe);
+                result = quickAuthentication.loginByCellphone(cellphone, password, algorithm, salt, rememberMe, params);
             }
 
         } else {
@@ -445,10 +453,10 @@ public class AuthController {
         Assert.notNull(userInfo, ResultException.unauthorized("can not get current userInfo"));
         UserInfo u1 = quickAuthService.getUserById(userInfo.getUserId(), true);
         Assert.notNull(u1, ResultException.unauthorized("can not get current userInfo"));
-        UserInfo u = new UserInfo();
-        BeanUtils.copyProperties(userInfo, u);
-        u.setPassword("******");
-        return Result.data(u).success();
+//        UserInfo u = new UserInfo();
+//        BeanUtils.copyProperties(userInfo, u);
+//        u.setPassword("******");
+        return Result.data(userInfo).success();
     }
 
     @PostMapping("/check-username")
